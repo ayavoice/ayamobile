@@ -1,75 +1,119 @@
-import { Image, Pressable, View } from "react-native";
-import { AppText, Avatar, Button, Icon, Screen, ScreenFooter } from "../components/ui";
+import { Pressable, View } from "react-native";
+import {
+  AppText,
+  Avatar,
+  Button,
+  Icon,
+  Screen,
+  ScreenFooter,
+  ScreenHeader,
+} from "../components/ui";
 import { brandImages } from "../content/brand";
 import { useAppPrefs } from "../context/AppPrefs";
-import { formatCurrency } from "../lib/currency";
+import { DECORATIVE_A11Y, formatCurrency, formatCurrencySpoken } from "../lib/currency";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Props = { onHome: () => void; onTransferMore: () => void; onBack: () => void };
 
 export default function TransferReceiptScreen({ onHome, onTransferMore, onBack }: Props) {
   const colors = useColors();
-  const styles = usePaletteStyles(createReceiptStyles);
+  const styles = usePaletteStyles(createStyles);
   const { flow } = useAppPrefs();
+
   const name = flow.details.find((d) => d.label === "To")?.value ?? "Ricky Martin";
   const number = flow.details.find((d) => d.label === "Number")?.value ?? "Ac no. 8050530XXX";
   const amount = formatCurrency(flow.successAmount ?? "580.00");
+  const amountSpoken = formatCurrencySpoken(flow.successAmount ?? "580.00");
+  const reference =
+    flow.successDetails.find((d) => d.label === "Reference")?.value ?? "AYA-2609-7K8X";
+  const when =
+    flow.successDetails.find((d) => d.label === "Date & time")?.value ?? "Today, 3:02 PM";
+
+  const details = [
+    { label: "To", value: name },
+    { label: "Account", value: number },
+    { label: "Reference", value: reference },
+    { label: "Date", value: when },
+  ];
 
   return (
     <Screen>
-      <View style={styles.top}>
-        <Pressable
-          onPress={onBack}
-          accessibilityRole="button"
-          role="button"
-          accessibilityLabel="Go back"
-          hitSlop={8}
-          style={styles.topBtn}
-        >
-          <Icon name="chevron-back" size={26} color={colors.text} />
-        </Pressable>
-        <AppText variant="headingSM" heading={1}>Transfer Receipt</AppText>
-        <View style={styles.topBtn} />
-      </View>
+      <ScreenHeader title="Receipt" onBack={onBack} />
 
       <View style={styles.body}>
-        <Image
-          source={brandImages.successSpiral}
-          style={styles.spiral}
-          resizeMode="contain"
-          accessibilityLabel="Transfer success"
-        />
-        <AppText variant="displayMD" align="center" color={colors.text}>
-          Transfer Success
-        </AppText>
-        <AppText variant="body" align="center" style={styles.sub}>
-          Your money has been successfully sent to {name}.
-        </AppText>
-
-        <AppText variant="caption" align="center" style={styles.totalLabel}>
-          Total Transfer amount
-        </AppText>
-        <AppText variant="displayLG" align="center" color={colors.text} style={styles.total}>
-          {amount}
-        </AppText>
-
-        <View style={styles.card}>
-          <Avatar source={brandImages.ricky} size={48} />
-          <View style={styles.cardText}>
-            <AppText variant="labelSM">{name}</AppText>
-            <AppText variant="caption">{number}</AppText>
+        <View style={styles.hero}>
+          <View style={styles.check} {...DECORATIVE_A11Y}>
+            <Icon name="checkmark" size={28} color={colors.white} />
           </View>
-          <AppText variant="caption">3:02 PM</AppText>
+
+          <AppText variant="labelSM" color={colors.success} align="center" style={styles.status}>
+            Sent
+          </AppText>
+
+          <View
+            accessible
+            accessibilityLabel={`Amount sent, ${amountSpoken}`}
+            style={styles.amountBlock}
+          >
+            <AppText
+              variant="displayLG"
+              align="center"
+              color={colors.text}
+              style={styles.amount}
+              importantForAccessibility="no"
+            >
+              {amount}
+            </AppText>
+          </View>
+
+          <View
+            style={styles.recipient}
+            accessible
+            accessibilityLabel={`Sent to ${name}`}
+          >
+            <Avatar source={brandImages.ricky} size={36} />
+            <AppText variant="bodySM" color={colors.textSecondary} importantForAccessibility="no">
+              to {name}
+            </AppText>
+          </View>
+        </View>
+
+        <View
+          style={styles.details}
+          accessible
+          accessibilityLabel={details.map((d) => `${d.label}, ${d.value}`).join(". ")}
+        >
+          {details.map((row, i) => (
+            <View
+              key={row.label}
+              style={[styles.row, i === details.length - 1 && styles.rowLast]}
+              importantForAccessibility="no"
+            >
+              <AppText variant="bodySM" color={colors.textMuted}>
+                {row.label}
+              </AppText>
+              <AppText variant="labelSM" style={styles.rowValue}>
+                {row.value}
+              </AppText>
+            </View>
+          ))}
         </View>
       </View>
 
       <ScreenFooter>
-        <Button onPress={onHome} variant="purple">
-          Back to Home
+        <Button onPress={onHome} variant="purple" accessibilityLabel="Done, back to home">
+          Done
         </Button>
-        <Pressable onPress={onTransferMore} accessibilityRole="button" role="button" style={styles.more}>
-          <AppText variant="labelSM" color={colors.text} style={styles.moreText}>
-            Transfer more money
+        <Pressable
+          onPress={onTransferMore}
+          accessibilityRole="button"
+          role="button"
+          accessibilityLabel="Transfer again"
+          accessibilityHint="Starts another transfer"
+          style={styles.secondary}
+        >
+          <AppText variant="labelSM" color={colors.textMuted} importantForAccessibility="no">
+            Transfer again
           </AppText>
         </Pressable>
       </ScreenFooter>
@@ -77,64 +121,71 @@ export default function TransferReceiptScreen({ onHome, onTransferMore, onBack }
   );
 }
 
-function createReceiptStyles(colors: Palette) {
+function createStyles(colors: Palette) {
   return {
-  top: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.sm,
-    minHeight: 52,
-  },
-  topBtn: {
-    width: 48,
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  body: {
-    flex: 1,
-    paddingHorizontal: spacing.screenX,
-    alignItems: "center",
-  },
-  spiral: {
-    width: 220,
-    height: 160,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  sub: {
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  totalLabel: {
-    marginTop: spacing["2xl"],
-  },
-  total: {
-    marginTop: 4,
-    letterSpacing: -1,
-  },
-  card: {
-    marginTop: spacing["2xl"],
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: radii["2xl"],
-    backgroundColor: colors.surfaceCard,
-  },
-  cardText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  more: {
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  moreText: {
-    textDecorationLine: "underline" as const,
-  },
+    body: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.lg,
+      gap: spacing["3xl"],
+    },
+    hero: {
+      alignItems: "center" as const,
+      gap: spacing.sm,
+      paddingTop: spacing.md,
+    },
+    check: {
+      width: 56,
+      height: 56,
+      borderRadius: radii.full,
+      backgroundColor: colors.success,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      marginBottom: spacing.sm,
+    },
+    status: {
+      letterSpacing: 0.4,
+      textTransform: "uppercase" as const,
+    },
+    amountBlock: {
+      width: "100%" as const,
+    },
+    amount: {
+      letterSpacing: -1.2,
+      fontWeight: "800" as const,
+    },
+    recipient: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: spacing.sm,
+      marginTop: spacing.xs,
+    },
+    details: {
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radii["2xl"],
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.sm,
+    },
+    row: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      gap: spacing.md,
+      minHeight: 48,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderMuted,
+    },
+    rowLast: {
+      borderBottomWidth: 0,
+    },
+    rowValue: {
+      flexShrink: 1,
+      textAlign: "right" as const,
+    },
+    secondary: {
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      minHeight: 44,
+    },
   };
 }

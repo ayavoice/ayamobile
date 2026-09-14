@@ -10,6 +10,7 @@ import {
   ScreenHeader,
 } from "../components/ui";
 import { useAppPrefs } from "../context/AppPrefs";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { fonts, radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Props = { onConfirm: () => void; onBack: () => void };
@@ -20,7 +21,7 @@ export default function UnderstandingScreen({ onConfirm, onBack }: Props) {
   const styles = usePaletteStyles(createStyles);
 
   return (
-    <Screen background={colors.background}>
+    <Screen>
       <ScreenHeader title="Review" onBack={onBack} />
       <ScrollView
         style={styles.flex}
@@ -28,21 +29,24 @@ export default function UnderstandingScreen({ onConfirm, onBack }: Props) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.badge}>
-          <Icon name="checkmark-circle" size={20} color={colors.successDark} />
-          <AppText variant="labelSM" color={colors.successDark}>
-            I understood you
+        <View
+          accessible
+          accessibilityLabel="Ready to continue"
+          style={styles.badge}
+        >
+          <View {...DECORATIVE_A11Y}>
+            <Icon name="checkmark-circle" size={20} color={colors.successDark} />
+          </View>
+          <AppText variant="labelSM" color={colors.successDark} importantForAccessibility="no">
+            Ready to continue
           </AppText>
         </View>
 
-        <AppText variant="titleMD" style={styles.title}>
-          Here's what I heard
+        <AppText variant="titleMD" style={styles.title} heading={2}>
+          {flow.intentLabel}
         </AppText>
 
         <Card style={styles.summary}>
-          <AppText variant="titleSM" color={colors.text} style={styles.kind}>
-            {flow.intentLabel}
-          </AppText>
           {flow.details.map((row, i) => (
             <DetailRow
               key={row.label}
@@ -63,12 +67,18 @@ export default function UnderstandingScreen({ onConfirm, onBack }: Props) {
             role="button"
             accessibilityLabel="Change"
             hitSlop={8}
+            style={styles.linkHit}
           >
-            <AppText variant="bodySM" color={colors.text} style={styles.linkStrong}>
+            <AppText
+              variant="bodySM"
+              color={colors.text}
+              style={styles.linkStrong}
+              importantForAccessibility="no"
+            >
               Change
             </AppText>
           </Pressable>
-          <AppText variant="bodySM" color={colors.textSubtle}>
+          <AppText variant="bodySM" color={colors.textSubtle} importantForAccessibility="no">
             {" "}
             ·{" "}
           </AppText>
@@ -78,8 +88,9 @@ export default function UnderstandingScreen({ onConfirm, onBack }: Props) {
             role="button"
             accessibilityLabel="Cancel"
             hitSlop={8}
+            style={styles.linkHit}
           >
-            <AppText variant="bodySM" color={colors.textSecondary}>
+            <AppText variant="bodySM" color={colors.textSecondary} importantForAccessibility="no">
               Cancel
             </AppText>
           </Pressable>
@@ -109,23 +120,24 @@ function createStyles(colors: Palette) {
       borderRadius: radii.full,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.lg,
-      marginBottom: spacing["2xl"],
+      marginBottom: spacing.xl,
     },
     title: {
-      marginBottom: spacing["2xl"],
+      marginBottom: spacing.xl,
     },
     summary: {
       marginBottom: spacing.xl,
-    },
-    kind: {
-      letterSpacing: -1,
-      marginBottom: spacing.lg,
     },
     linkRow: {
       flexDirection: "row" as const,
       justifyContent: "center" as const,
       alignItems: "center" as const,
-      minHeight: 40,
+      minHeight: 44,
+    },
+    linkHit: {
+      minHeight: 44,
+      justifyContent: "center" as const,
+      paddingHorizontal: spacing.xs,
     },
     linkStrong: {
       fontFamily: fonts.body.bold,

@@ -5,6 +5,7 @@ type ToggleProps = {
   value: boolean;
   onValueChange: (next: boolean) => void;
   accessibilityLabel: string;
+  accessibilityHint?: string;
   onColor?: string;
   offColor?: string;
 };
@@ -13,6 +14,7 @@ export default function Toggle({
   value,
   onValueChange,
   accessibilityLabel,
+  accessibilityHint,
   onColor,
   offColor,
 }: ToggleProps) {
@@ -28,9 +30,13 @@ export default function Toggle({
       accessibilityState={{ checked: value }}
       aria-checked={value}
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      hitSlop={8}
       style={[styles.track, { backgroundColor: value ? on : off }]}
     >
       <View
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
         style={[
           styles.thumb,
           { backgroundColor: colors.white },

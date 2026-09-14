@@ -19,6 +19,7 @@ type ButtonProps = {
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
 };
 
 function variantFill(variant: ButtonVariant, colors: Palette) {
@@ -47,9 +48,12 @@ export default function Button({
   loading = false,
   style,
   accessibilityLabel,
+  accessibilityHint,
 }: ButtonProps) {
   const colors = useColors();
   const isDisabled = disabled || loading;
+  const resolvedLabel =
+    accessibilityLabel ?? (typeof children === "string" ? children : undefined);
 
   return (
     <Pressable
@@ -58,9 +62,9 @@ export default function Button({
       accessibilityRole="button"
       role="button"
       hitSlop={4}
-      accessibilityLabel={
-        accessibilityLabel ?? (typeof children === "string" ? children : undefined)
-      }
+      accessibilityLabel={resolvedLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         { backgroundColor: variantFill(variant, colors) },
@@ -70,9 +74,18 @@ export default function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variantLabel(variant, colors)} />
+        <ActivityIndicator
+          color={variantLabel(variant, colors)}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
       ) : typeof children === "string" ? (
-        <AppText variant="button" color={variantLabel(variant, colors)} style={styles.label}>
+        <AppText
+          variant="button"
+          color={variantLabel(variant, colors)}
+          style={styles.label}
+          importantForAccessibility="no"
+        >
           {children}
         </AppText>
       ) : (

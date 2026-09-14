@@ -20,10 +20,17 @@ export default function ScreenHeader({ title, onBack, right }: Props) {
           accessibilityRole="button"
           role="button"
           accessibilityLabel="Go back"
+          accessibilityHint="Returns to the previous screen"
           hitSlop={8}
           style={styles.btn}
         >
-          <Icon name="chevron-back" size={26} color={colors.text} />
+          <View
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Icon name="chevron-back" size={26} color={colors.text} />
+          </View>
         </Pressable>
       ) : (
         <View style={styles.btn} />

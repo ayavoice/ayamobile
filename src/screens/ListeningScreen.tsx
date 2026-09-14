@@ -67,9 +67,11 @@ export default function ListeningScreen({ onNext, onBack }: Props) {
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => setMuted((m) => !m)}
-            accessibilityRole="button"
-            role="button"
-            accessibilityLabel={muted ? "Unmute microphone" : "Mute microphone"}
+            accessibilityRole="switch"
+            role="switch"
+            accessibilityState={{ checked: muted }}
+            accessibilityLabel="Mute microphone"
+            accessibilityHint={muted ? "Unmutes the microphone" : "Mutes the microphone"}
             hitSlop={8}
             style={styles.headerBtn}
           >
@@ -103,8 +105,13 @@ export default function ListeningScreen({ onNext, onBack }: Props) {
           </AppText>
         </View>
 
-        <View style={styles.bubble}>
-          <AppText variant="body" color={colors.text}>
+        <View
+          accessible
+          accessibilityLabel={transcriptSoFar ? `Transcript: ${transcriptSoFar}` : "Transcript"}
+          accessibilityLiveRegion="polite"
+          style={styles.bubble}
+        >
+          <AppText variant="body" color={colors.text} importantForAccessibility="no">
             {transcriptSoFar || " "}
             {!done ? "…" : ""}
           </AppText>

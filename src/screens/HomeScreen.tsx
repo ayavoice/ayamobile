@@ -7,6 +7,9 @@ import {
   StyleSheet,
   Text,
   View,
+  type ImageStyle,
+  type TextStyle,
+  type ViewStyle,
 } from "react-native";
 import Animated, {
   Easing,
@@ -17,68 +20,192 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { AppText, Avatar, Icon, MciIcon, Screen } from "../components/ui";
-import { ACCENT, brandImages } from "../content/brand";
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  G,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+} from "react-native-svg";
+import { AppText, Avatar, Icon, IconWell, MciIcon, Screen } from "../components/ui";
+import NotificationsModal from "../components/NotificationsModal";
+import { ACCENT, ACCENT_BLUE, brandImages } from "../content/brand";
 import type { FlowId } from "../content/flows";
-import { formatCurrency } from "../lib/currency";
+import { SERVICES } from "../content/services";
+import { formatCurrency, formatCurrencySpoken } from "../lib/currency";
 import type { ScreenId } from "../navigation/types";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
-type BannerIllustration = "voice" | "gift" | "shield" | "trophy";
+/** Hide decorative visuals from VoiceOver / TalkBack without affecting layout. */
+const DECORATIVE = {
+  accessible: false as const,
+  accessibilityElementsHidden: true,
+  importantForAccessibility: "no-hide-descendants" as const,
+};
 
-const ART_SIZE = 148;
+type BannerIllustration = "voice" | "gift" | "shield" | "trophy" | "speaker";
 
+const ART_SIZE = 168;
+
+/** Soft ambient blobs behind every scene — Uber-style depth without flat icon chrome. */
+function ArtAtmosphere({
+  blob = "rgba(255,255,255,0.55)",
+  accent = "rgba(85,40,232,0.14)",
+}: {
+  blob?: string;
+  accent?: string;
+}) {
+  return (
+    <G>
+      <Ellipse cx={118} cy={52} rx={58} ry={50} fill={blob} />
+      <Circle cx={42} cy={118} r={28} fill={accent} />
+      <Circle cx={28} cy={46} r={7} fill="rgba(255,255,255,0.7)" />
+      <Circle cx={132} cy={118} r={5} fill="rgba(255,255,255,0.55)" />
+      <Ellipse cx={96} cy={138} rx={42} ry={8} fill="rgba(18,23,33,0.08)" />
+    </G>
+  );
+}
+
+/** Voice send — mic capsule + ripples + floating cedi chip. */
 function VoiceIllustration() {
   return (
-    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 148 148">
-      <Circle cx={104} cy={40} r={54} fill="rgba(255,255,255,0.22)" />
-      <Circle cx={40} cy={108} r={30} fill="rgba(255,255,255,0.18)" />
-      <Circle cx={112} cy={118} r={9} fill="rgba(255,255,255,0.5)" />
-      <Circle cx={30} cy={40} r={5} fill="rgba(255,255,255,0.6)" />
-      <Circle cx={98} cy={98} r={44} fill="#FFFFFF" opacity={0.92} />
-      <Rect x={68} y={78} width={9} height={18} rx={4.5} fill={ACCENT} />
-      <Rect x={83} y={62} width={9} height={50} rx={4.5} fill={ACCENT} />
-      <Rect x={98} y={70} width={9} height={34} rx={4.5} fill={ACCENT} />
-      <Rect x={113} y={82} width={9} height={10} rx={4.5} fill={ACCENT} />
+    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
+      <Defs>
+        <LinearGradient id="voiceMic" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#FFFFFF" />
+          <Stop offset="1" stopColor="#E8E9FF" />
+        </LinearGradient>
+        <LinearGradient id="voiceBody" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={ACCENT_BLUE} />
+          <Stop offset="1" stopColor={ACCENT} />
+        </LinearGradient>
+      </Defs>
+      <ArtAtmosphere accent="rgba(40,48,240,0.12)" />
+      {/* Voice ripples */}
+      <Path
+        d="M118 62c10 8 10 28 0 36"
+        stroke={ACCENT_BLUE}
+        strokeWidth={3.5}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.35}
+      />
+      <Path
+        d="M128 52c16 12 16 44 0 56"
+        stroke={ACCENT_BLUE}
+        strokeWidth={3}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.22}
+      />
+      {/* Mic stand */}
+      <Rect x={82} y={108} width={6} height={18} rx={3} fill="#C8CBE8" />
+      <Ellipse cx={85} cy={128} rx={18} ry={5} fill="#FFFFFF" />
+      <Ellipse cx={85} cy={128} rx={18} ry={5} fill="rgba(40,48,240,0.08)" />
+      {/* Capsule */}
+      <Rect x={70} y={48} width={30} height={58} rx={15} fill="url(#voiceMic)" />
+      <Rect x={76} y={56} width={18} height={36} rx={9} fill="url(#voiceBody)" />
+      <Circle cx={85} cy={66} r={3.5} fill="#FFFFFF" opacity={0.85} />
+      <Circle cx={85} cy={76} r={3.5} fill="#FFFFFF" opacity={0.55} />
+      <Circle cx={85} cy={86} r={3.5} fill="#FFFFFF" opacity={0.35} />
+      {/* Floating send chip */}
+      <G>
+        <Ellipse cx={128} cy={98} rx={22} ry={16} fill="#FFFFFF" />
+        <Ellipse cx={128} cy={98} rx={22} ry={16} fill="rgba(40,48,240,0.06)" />
+        <Path
+          d="M118 98h14M128 92l8 6-8 6"
+          stroke={ACCENT_BLUE}
+          strokeWidth={2.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </G>
     </Svg>
   );
 }
 
+/** Referral gift — dimensional box, ribbon, floating coin. */
 function GiftIllustration() {
   return (
-    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 148 148">
-      <Circle cx={100} cy={38} r={50} fill="rgba(255,255,255,0.2)" />
-      <Circle cx={36} cy={112} r={24} fill="rgba(255,255,255,0.18)" />
-      <Circle cx={124} cy={110} r={6} fill="rgba(255,255,255,0.55)" />
-      <Circle cx={26} cy={44} r={4} fill="rgba(255,255,255,0.6)" />
-      <Rect x={54} y={78} width={64} height={48} rx={8} fill="#FFFFFF" opacity={0.92} />
-      <Rect x={54} y={64} width={64} height={20} rx={8} fill={ACCENT} />
-      <Rect x={82} y={60} width={12} height={70} fill="rgba(255,255,255,0.6)" />
-      <Path d="M82 64c-9-4-15-19-5-22 9-2 12 13 5 22z" fill={ACCENT} />
-      <Path d="M94 64c9-4 15-19 5-22-9-2-12 13-5 22z" fill={ACCENT} />
+    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
+      <Defs>
+        <LinearGradient id="giftLid" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={ACCENT} />
+          <Stop offset="1" stopColor={ACCENT_BLUE} />
+        </LinearGradient>
+        <LinearGradient id="giftBox" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FFFFFF" />
+          <Stop offset="1" stopColor="#EAF7EC" />
+        </LinearGradient>
+        <LinearGradient id="giftCoin" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#FFE08A" />
+          <Stop offset="1" stopColor="#F0B429" />
+        </LinearGradient>
+      </Defs>
+      <ArtAtmosphere accent="rgba(46,180,90,0.14)" blob="rgba(255,255,255,0.5)" />
+      {/* Confetti */}
+      <Circle cx={48} cy={58} r={3.5} fill="#2DBE6C" opacity={0.7} />
+      <Rect x={130} y={48} width={7} height={7} rx={2} fill={ACCENT} opacity={0.55} />
+      <Circle cx={138} cy={78} r={2.5} fill="#F0B429" />
+      {/* Box body */}
+      <Path
+        d="M52 78h64c6 0 10 4 10 10v36c0 6-4 10-10 10H52c-6 0-10-4-10-10V88c0-6 4-10 10-10z"
+        fill="url(#giftBox)"
+      />
+      <Rect x={78} y={78} width={12} height={56} fill="rgba(85,40,232,0.18)" />
+      {/* Lid */}
+      <Path
+        d="M46 68h76c5 0 8 3 8 8v8H38v-8c0-5 3-8 8-8z"
+        fill="url(#giftLid)"
+      />
+      <Rect x={78} y={68} width={12} height={16} fill="rgba(255,255,255,0.35)" />
+      {/* Bow */}
+      <Path d="M84 68c-14-2-22-16-12-22 8-4 14 8 12 22z" fill="#7B20E8" />
+      <Path d="M84 68c14-2 22-16 12-22-8-4-14 8-12 22z" fill="#9B5CFF" />
+      <Circle cx={84} cy={66} r={5} fill="#FFFFFF" />
+      {/* Coin */}
+      <Circle cx={128} cy={108} r={18} fill="url(#giftCoin)" />
+      <Circle cx={128} cy={108} r={13} fill="#FFF6D6" />
+      <Path
+        d="M128 100v16M123 104c2-2 8-2 10 0M123 112c2 2 8 2 10 0"
+        stroke="#C98A10"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        fill="none"
+      />
     </Svg>
   );
 }
 
+/** Security shield — kept for parity if reused. */
 function ShieldIllustration() {
   return (
-    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 148 148">
-      <Circle cx={102} cy={40} r={52} fill="rgba(255,255,255,0.2)" />
-      <Circle cx={34} cy={110} r={26} fill="rgba(255,255,255,0.18)" />
-      <Circle cx={30} cy={40} r={5} fill="rgba(255,255,255,0.6)" />
-      <Circle cx={122} cy={104} r={7} fill="rgba(255,255,255,0.5)" />
+    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
+      <Defs>
+        <LinearGradient id="shieldFace" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FFFFFF" />
+          <Stop offset="1" stopColor="#EDE8FF" />
+        </LinearGradient>
+        <LinearGradient id="shieldCore" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={ACCENT_BLUE} />
+          <Stop offset="1" stopColor={ACCENT} />
+        </LinearGradient>
+      </Defs>
+      <ArtAtmosphere />
       <Path
-        d="M84 46 L118 60 V88 C118 112 102 128 84 135 C66 128 50 112 50 88 V60 Z"
-        fill="#FFFFFF"
-        opacity={0.92}
+        d="M84 42l40 16v28c0 28-18 46-40 54-22-8-40-26-40-54V58z"
+        fill="url(#shieldFace)"
       />
       <Path
-        d="M84 58 L108 68 V88 C108 105 96 116 84 122 C72 116 60 105 60 88 V68 Z"
-        fill={ACCENT}
+        d="M84 54l28 12v22c0 20-13 34-28 40-15-6-28-20-28-40V66z"
+        fill="url(#shieldCore)"
       />
       <Path
-        d="M74 89l7 7 15-16"
+        d="M72 88l8 8 16-18"
         stroke="#FFFFFF"
         strokeWidth={5}
         strokeLinecap="round"
@@ -89,37 +216,119 @@ function ShieldIllustration() {
   );
 }
 
+/** Leaderboard trophy — cup, handles, star, soft podium. */
 function TrophyIllustration() {
   return (
-    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 148 148">
-      <Circle cx={102} cy={40} r={52} fill="rgba(255,255,255,0.2)" />
-      <Circle cx={34} cy={110} r={26} fill="rgba(255,255,255,0.18)" />
-      <Circle cx={30} cy={40} r={5} fill="rgba(255,255,255,0.6)" />
-      <Circle cx={122} cy={104} r={7} fill="rgba(255,255,255,0.5)" />
-      <Rect x={66} y={112} width={36} height={10} rx={3} fill="#FFFFFF" opacity={0.92} />
-      <Rect x={76} y={98} width={16} height={18} fill="#FFFFFF" opacity={0.92} />
+    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
+      <Defs>
+        <LinearGradient id="trophyCup" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FFE59A" />
+          <Stop offset="1" stopColor="#F0B429" />
+        </LinearGradient>
+        <LinearGradient id="trophyStem" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FFFFFF" />
+          <Stop offset="1" stopColor="#E8EAFF" />
+        </LinearGradient>
+      </Defs>
+      <ArtAtmosphere accent="rgba(240,180,41,0.16)" blob="rgba(255,255,255,0.52)" />
+      {/* Sparkles */}
+      <Path d="M48 58l2.5 5.5 5.5 2.5-5.5 2.5L48 74l-2.5-5.5L40 66l5.5-2.5z" fill="#F0B429" opacity={0.85} />
+      <Path d="M132 50l2 4.2 4.2 2-4.2 2L132 62.4l-2-4.2-4.2-2 4.2-2z" fill={ACCENT} opacity={0.55} />
+      {/* Podium */}
+      <Rect x={58} y={124} width={52} height={10} rx={4} fill="#FFFFFF" />
+      <Rect x={66} y={116} width={36} height={10} rx={3} fill="url(#trophyStem)" />
+      {/* Stem */}
+      <Rect x={80} y={100} width={8} height={18} rx={3} fill="#D4D7F0" />
+      {/* Cup */}
       <Path
-        d="M58 52h48v20c0 15-11 27-24 27s-24-12-24-27z"
-        fill="#FFFFFF"
-        opacity={0.92}
+        d="M58 48h52v22c0 18-12 32-26 32S58 88 58 70z"
+        fill="url(#trophyCup)"
       />
       <Path
-        d="M58 56c-10 0-16 6-16 14s7 13 15 13"
-        stroke="#FFFFFF"
-        strokeWidth={5}
+        d="M66 54h36v14c0 12-8 22-18 22s-18-10-18-22z"
+        fill="#FFF6D6"
+        opacity={0.55}
+      />
+      {/* Handles */}
+      <Path
+        d="M58 56c-12 0-18 8-18 16s8 14 16 14"
+        stroke="#F0B429"
+        strokeWidth={6}
         strokeLinecap="round"
         fill="none"
-        opacity={0.92}
       />
       <Path
-        d="M106 56c10 0 16 6 16 14s-7 13-15 13"
-        stroke="#FFFFFF"
-        strokeWidth={5}
+        d="M110 56c12 0 18 8 18 16s-8 14-16 14"
+        stroke="#F0B429"
+        strokeWidth={6}
         strokeLinecap="round"
         fill="none"
-        opacity={0.92}
       />
-      <Path d="M82 66l3.6 7.4 8.2 1.2-5.9 5.7 1.4 8.1L82 84.5l-7.3 3.9 1.4-8.1-5.9-5.7 8.2-1.2z" fill={ACCENT} />
+      {/* Star */}
+      <Path
+        d="M84 62l3.2 6.6 7.3 1.1-5.3 5.1 1.3 7.2L84 78.6l-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1.1z"
+        fill={ACCENT}
+      />
+    </Svg>
+  );
+}
+
+/** Merchant paid aloud — phone + speaker waves + paid toast. */
+function SpeakerIllustration() {
+  return (
+    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
+      <Defs>
+        <LinearGradient id="phoneBody" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FFFFFF" />
+          <Stop offset="1" stopColor="#EDE8FF" />
+        </LinearGradient>
+        <LinearGradient id="phoneScreen" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={ACCENT_BLUE} />
+          <Stop offset="1" stopColor={ACCENT} />
+        </LinearGradient>
+      </Defs>
+      <ArtAtmosphere />
+      {/* Sound rings */}
+      <Path
+        d="M122 58c12 10 12 34 0 44"
+        stroke={ACCENT}
+        strokeWidth={3.5}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.3}
+      />
+      <Path
+        d="M132 48c20 14 20 50 0 64"
+        stroke={ACCENT}
+        strokeWidth={3}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.18}
+      />
+      {/* Phone */}
+      <Rect x={58} y={42} width={52} height={88} rx={14} fill="url(#phoneBody)" />
+      <Rect x={64} y={52} width={40} height={62} rx={8} fill="url(#phoneScreen)" />
+      <Ellipse cx={84} cy={120} rx={8} ry={3} fill="rgba(85,40,232,0.2)" />
+      {/* Waveform on screen */}
+      <Rect x={72} y={72} width={4} height={12} rx={2} fill="#FFFFFF" opacity={0.9} />
+      <Rect x={80} y={66} width={4} height={24} rx={2} fill="#FFFFFF" />
+      <Rect x={88} y={70} width={4} height={16} rx={2} fill="#FFFFFF" opacity={0.9} />
+      <Rect x={96} y={74} width={4} height={8} rx={2} fill="#FFFFFF" opacity={0.75} />
+      {/* Paid toast */}
+      <G>
+        <Rect x={108} y={88} width={44} height={28} rx={14} fill="#FFFFFF" />
+        <Circle cx={122} cy={102} r={8} fill="#2DBE6C" />
+        <Path
+          d="M118 102l3 3 6-7"
+          stroke="#FFFFFF"
+          strokeWidth={2.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <Rect x={134} y={97} width={12} height={3.5} rx={1.75} fill="#D8D6E8" />
+        <Rect x={134} y={104} width={8} height={3.5} rx={1.75} fill="#E8E6F2" />
+      </G>
     </Svg>
   );
 }
@@ -128,6 +337,7 @@ function BannerArt({ kind }: { kind: BannerIllustration }) {
   if (kind === "voice") return <VoiceIllustration />;
   if (kind === "gift") return <GiftIllustration />;
   if (kind === "trophy") return <TrophyIllustration />;
+  if (kind === "speaker") return <SpeakerIllustration />;
   return <ShieldIllustration />;
 }
 
@@ -137,23 +347,44 @@ type Props = {
 };
 
 const RECIPIENTS = [
-  brandImages.sonya,
-  brandImages.mansi,
-  brandImages.palak,
-  brandImages.sourabh,
+  { name: "Sonya", image: brandImages.sonya },
+  { name: "Mansi", image: brandImages.mansi },
+  { name: "Palak", image: brandImages.palak },
+  { name: "Sourabh", image: brandImages.sourabh },
 ];
 
 const QUICK_SEND = [
   { name: "Sonya", image: brandImages.sonya },
   { name: "Mansi", image: brandImages.mansi },
-  { name: "palak", image: brandImages.palak },
+  { name: "Palak", image: brandImages.palak },
   { name: "Sandeepa", image: brandImages.sandeepa },
   { name: "Sourabh", image: brandImages.sourabh },
   { name: "Aisha", image: brandImages.aisha },
 ];
 
-const BANNER_WIDTH = 280;
-const BANNER_HEIGHT = 112;
+const HOME_BALANCE = 2648.34;
+
+type LastAction = {
+  id: string;
+  label: string;
+  sub: string;
+  amount: number;
+  icon: "spotify" | "arrow-up" | "arrow-down" | "phone-portrait" | "wifi" | "flash";
+  tint: "spotify" | "purple" | "blue" | "green" | "yellow";
+};
+
+const LAST_ACTIONS: LastAction[] = [
+  { id: "sent", label: "Sent to Ricky", sub: "Today, 3:02 PM", amount: -580, icon: "arrow-up", tint: "purple" },
+  { id: "received", label: "Received from Abena", sub: "Yesterday, 4:20 PM", amount: 300, icon: "arrow-down", tint: "blue" },
+  { id: "spotify", label: "Spotify", sub: "Yesterday", amount: -14.9, icon: "spotify", tint: "spotify" },
+  { id: "airtime", label: "Airtime", sub: "6 Sep, 10:00 AM", amount: -10, icon: "phone-portrait", tint: "purple" },
+  { id: "data", label: "Data bundle", sub: "5 Sep, 2:15 PM", amount: -25, icon: "wifi", tint: "blue" },
+];
+
+const LAST_ACTIONS_PREVIEW = 2;
+
+const BANNER_WIDTH = 292;
+const BANNER_HEIGHT = 128;
 const BANNER_GAP = 12;
 
 function bannersFor(
@@ -168,39 +399,40 @@ function bannersFor(
 }[] {
   return [
     {
+      illustration: "speaker",
+      title: "Get paid out loud",
+      bg: colors.washPurple,
+      accessibilityLabel: "Get paid out loud. Set up shop payments with speaker alerts",
+      onPress: () => onNav("merchant-receive"),
+    },
+    {
       illustration: "voice",
       title: "Send with just your voice",
-      bg: colors.washPurple,
+      bg: colors.washBlue,
       accessibilityLabel: "Send with just your voice",
     },
     {
       illustration: "gift",
       title: "Invite friends, earn GH₵20",
-      bg: colors.washBlue,
+      bg: colors.washGreen,
       accessibilityLabel: "Invite friends, earn GH₵20",
     },
     {
       illustration: "trophy",
-      title: "See who's top of the leaderboard",
+      title: "Think Genius leaderboard",
       bg: colors.washYellow,
-      accessibilityLabel: "Open leaderboard",
+      accessibilityLabel: "Open Learn leaderboard",
       onPress: () => onNav("leaderboard"),
-    },
-    {
-      illustration: "shield",
-      title: "Your PIN stays yours",
-      bg: colors.washGreen,
-      accessibilityLabel: "Your PIN stays yours",
     },
   ];
 }
 
 const MIC_WAVE_BARS = [
-  { h: 16, delay: 0, color: "#B57CFF" },
-  { h: 32, delay: 90, color: "#9B5CFF" },
-  { h: 48, delay: 40, color: "#7B4DFF" },
-  { h: 28, delay: 130, color: "#E14BFF" },
-  { h: 16, delay: 60, color: "#C45CFF" },
+  { h: 16, delay: 0, color: "#2830F0" },
+  { h: 32, delay: 90, color: "#3A30F0" },
+  { h: 48, delay: 40, color: "#5528E8" },
+  { h: 28, delay: 130, color: "#6B20E8" },
+  { h: 16, delay: 60, color: "#7B20E8" },
 ];
 
 function MicWaveBar({ height, delay, color }: { height: number; delay: number; color: string }) {
@@ -227,7 +459,7 @@ function MicWaveBar({ height, delay, color }: { height: number; delay: number; c
 
 function MicWave() {
   return (
-    <View style={micWaveStyles.row}>
+    <View style={micWaveStyles.row} {...DECORATIVE}>
       {MIC_WAVE_BARS.map((bar, i) => (
         <MicWaveBar key={i} height={bar.h} delay={bar.delay} color={bar.color} />
       ))}
@@ -249,54 +481,77 @@ const micWaveStyles = StyleSheet.create({
   },
 });
 
+function tintColor(tint: LastAction["tint"], colors: Palette) {
+  if (tint === "spotify") return "#1DB954";
+  if (tint === "blue") return colors.washBlue;
+  if (tint === "green") return colors.washGreen;
+  if (tint === "yellow") return colors.washYellow;
+  return colors.washPurple;
+}
+
 export default function HomeScreen({ onNav, onStartFlow }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createHomeStyles);
   const [selectedSend, setSelectedSend] = useState("Mansi");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const BANNERS = bannersFor(colors, onNav);
+  const balanceSpoken = formatCurrencySpoken(HOME_BALANCE);
+  const serviceCount = SERVICES.length;
+  const visibleActions = LAST_ACTIONS.slice(0, LAST_ACTIONS_PREVIEW);
 
   return (
     <Screen style={styles.root} safeBottom={false}>
+      <NotificationsModal
+        visible={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        accessibilityLabel="Home"
       >
         <View style={styles.header}>
-          <Pressable
-            onPress={() => onNav("profile")}
-            accessibilityRole="button"
-            role="button"
-            accessibilityLabel="Open your profile, Pratik"
-            hitSlop={8}
-            style={styles.profileRow}
-          >
-            <Avatar source={brandImages.pratik} size={42} />
-            <View style={styles.hello}>
-              <AppText variant="headingSM" color={colors.text} heading={1}>
-                Hello, <Text style={styles.helloName}>Pratik!</Text>
-              </AppText>
-            </View>
-          </Pressable>
-          <View style={styles.headerActions}>
+          <View style={styles.profileRow}>
             <Pressable
-              onPress={() =>
-                Alert.alert("Notifications", "You're all caught up, no new notifications.")
-              }
+              onPress={() => onNav("profile")}
+              accessibilityRole="button"
+              role="button"
+              accessibilityLabel="Open your profile"
+              accessibilityHint="Opens profile and settings"
+              hitSlop={8}
+              style={styles.profileAvatarHit}
+            >
+              <Avatar source={brandImages.pratik} size={42} />
+            </Pressable>
+            <AppText variant="headingSM" color={colors.text} heading={1} style={styles.hello}>
+              Hello, <Text style={styles.helloName}>Pratik!</Text>
+            </AppText>
+          </View>
+          <View
+            style={styles.headerActions}
+            accessibilityRole="toolbar"
+            accessibilityLabel="Quick actions"
+          >
+            <Pressable
+              onPress={() => setNotificationsOpen(true)}
               accessibilityRole="button"
               role="button"
               accessibilityLabel="Notifications"
-              hitSlop={8}
+              accessibilityHint="Opens your notifications"
+              hitSlop={12}
               style={styles.iconBtn}
             >
               <Icon name="notifications-outline" size={22} color={colors.text} />
+              <View style={styles.notifDot} {...DECORATIVE} />
             </Pressable>
             <Pressable
               onPress={() => onNav("services")}
               accessibilityRole="button"
               role="button"
-              accessibilityLabel="Open menu"
-              hitSlop={8}
+              accessibilityLabel="Open all services"
+              accessibilityHint="Shows every Aya service in one place"
+              hitSlop={12}
               style={styles.iconBtn}
             >
               <Icon name="grid-outline" size={22} color={colors.text} />
@@ -304,26 +559,43 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
           </View>
         </View>
 
-        <AppText variant="labelSM" align="center" color={colors.text} style={styles.balanceLabel}>
-          Your balance
-        </AppText>
-        <AppText
-          variant="displayLG"
-          align="center"
-          color={colors.text}
-          style={styles.balance}
-          numberOfLines={1}
-          adjustsFontSizeToFit
+        <View
+          accessible
+          accessibilityRole="summary"
+          role="summary"
+          accessibilityLabel={`Your balance, ${balanceSpoken}`}
+          accessibilityLiveRegion="polite"
+          style={styles.balanceBlock}
         >
-          {formatCurrency(2648.34)}
-        </AppText>
+          <AppText
+            variant="labelSM"
+            align="center"
+            color={colors.purple}
+            style={styles.balanceLabel}
+            importantForAccessibility="no"
+          >
+            Your balance
+          </AppText>
+          <AppText
+            variant="displayLG"
+            align="center"
+            color={colors.text}
+            style={styles.balance}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            importantForAccessibility="no"
+          >
+            {formatCurrency(HOME_BALANCE)}
+          </AppText>
+        </View>
 
         <View style={styles.stage}>
           <Image
             source={brandImages.cardStack}
-            style={styles.cardStack}
+            style={styles.cardStack as ImageStyle}
             resizeMode="contain"
             accessibilityIgnoresInvertColors
+            {...DECORATIVE}
           />
           <View style={styles.micWrap}>
             <Pressable
@@ -331,6 +603,7 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
               accessibilityRole="button"
               role="button"
               accessibilityLabel="Talk to send money"
+              accessibilityHint="Starts a voice-guided transfer"
               style={({ pressed }) => [styles.micButton, pressed && styles.micPressed]}
             >
               <MicWave />
@@ -338,25 +611,31 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
           </View>
         </View>
 
-        <AppText variant="headingSM" style={styles.sectionTitle}>
+        <AppText variant="headingSM" heading={2} style={styles.sectionTitle}>
           Recipients
         </AppText>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.hRow}
+          accessibilityRole="list"
           role="list"
-          accessibilityLabel="Recipients"
+          accessibilityLabel={`Recent recipients, ${RECIPIENTS.length + 1} items`}
         >
-          {RECIPIENTS.map((src, i) => (
-            <View key={i} role="listitem">
+          {RECIPIENTS.map((person, i) => (
+            <View
+              key={person.name}
+              role="listitem"
+            >
               <Pressable
                 onPress={() => onStartFlow("transfer")}
                 accessibilityRole="button"
                 role="button"
-                accessibilityLabel="Send money to recipient"
+                accessibilityLabel={`Send money to ${person.name}`}
+                accessibilityHint={`Recipient ${i + 1} of ${RECIPIENTS.length}. Starts a voice transfer`}
+                style={styles.recipientHit}
               >
-                <Avatar source={src} size={58} />
+                <Avatar source={person.image} size={58} />
               </Pressable>
             </View>
           ))}
@@ -366,35 +645,99 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
               accessibilityRole="button"
               role="button"
               accessibilityLabel="5 more recipients"
+              accessibilityHint="Starts a voice transfer to choose another recipient"
               style={styles.moreCircle}
             >
-              <AppText variant="labelSM" color={colors.white}>
+              <AppText variant="labelSM" color={colors.white} importantForAccessibility="no">
                 5+
               </AppText>
             </Pressable>
           </View>
         </ScrollView>
 
-        <AppText variant="caption" style={styles.lastLabel}>
-          Last actions
+        <AppText variant="headingSM" heading={2} style={styles.sectionTitle}>
+          Quick access
         </AppText>
-        <Pressable
-          onPress={() => onNav("history")}
-          accessibilityRole="button"
-          role="button"
-          accessibilityLabel="Spotify, yesterday, minus 14 dollars 90"
-          style={styles.actionRow}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.quickAccessRow}
+          accessibilityRole="list"
+          role="list"
+          accessibilityLabel={`Quick access, ${serviceCount + 1} items`}
         >
-          <View style={styles.spotifyMark}>
-            <MciIcon name="spotify" size={22} color={colors.white} />
+          {SERVICES.map((service, index) => {
+            const available = Boolean(service.flow || service.screen);
+            return (
+              <View
+                key={service.label}
+                role="listitem"
+              >
+                <Pressable
+                  onPress={() => {
+                    if (service.screen) {
+                      onNav(service.screen);
+                      return;
+                    }
+                    if (service.flow) {
+                      onStartFlow(service.flow);
+                      return;
+                    }
+                    Alert.alert(service.label, "This service is coming soon.");
+                  }}
+                  accessibilityRole="button"
+                  role="button"
+                  accessible
+                  accessibilityLabel={`${service.label}, ${index + 1} of ${serviceCount}${
+                    available ? "" : ", coming soon"
+                  }`}
+                  accessibilityHint={service.actionHint}
+                  style={({ pressed }) => [
+                    styles.quickAccessItem,
+                    pressed && styles.quickAccessPressed,
+                    !available && styles.quickAccessDisabled,
+                  ]}
+                >
+                  <View style={styles.quickAccessInner} {...DECORATIVE}>
+                    <IconWell backgroundColor={colors.washPurple} size={48} radius={16}>
+                      <Icon name={service.icon} size={24} color={colors.text} />
+                    </IconWell>
+                    <AppText variant="caption" numberOfLines={2} style={styles.quickAccessLabel}>
+                      {service.label}
+                    </AppText>
+                  </View>
+                </Pressable>
+              </View>
+            );
+          })}
+          <View role="listitem">
+            <Pressable
+              onPress={() => onNav("services")}
+              accessibilityRole="button"
+              role="button"
+              accessible
+              accessibilityLabel={`All services, ${serviceCount + 1} of ${serviceCount + 1}`}
+              accessibilityHint="Opens the full services list"
+              style={({ pressed }) => [
+                styles.quickAccessItem,
+                pressed && styles.quickAccessPressed,
+              ]}
+            >
+              <View style={styles.quickAccessInner} {...DECORATIVE}>
+                <IconWell backgroundColor={colors.washBlue} size={48} radius={16}>
+                  <Icon name="grid-outline" size={24} color={colors.text} />
+                </IconWell>
+                <AppText variant="caption" numberOfLines={2} style={styles.quickAccessLabel}>
+                  All services
+                </AppText>
+              </View>
+            </Pressable>
           </View>
-          <View style={styles.flex}>
-            <AppText variant="labelSM">Spotify</AppText>
-            <AppText variant="caption">Yesterday</AppText>
-          </View>
-          <AppText variant="amount">-{formatCurrency(14.9)}</AppText>
-        </Pressable>
+        </ScrollView>
 
+        <AppText variant="headingSM" heading={2} style={styles.sectionTitle}>
+          Highlights
+        </AppText>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -402,25 +745,30 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
           snapToInterval={BANNER_WIDTH + BANNER_GAP}
           snapToAlignment="start"
           contentContainerStyle={styles.bannerRow}
+          accessibilityRole="list"
           role="list"
-          accessibilityLabel="Promotions"
+          accessibilityLabel={`Highlights, ${BANNERS.length} items`}
         >
           {BANNERS.map((banner, i) => (
             <View key={i} role="listitem">
               <Pressable
                 onPress={banner.onPress}
                 disabled={!banner.onPress}
-                accessibilityRole={banner.onPress ? "button" : undefined}
+                accessible
+                accessibilityRole={banner.onPress ? "button" : "text"}
                 role={banner.onPress ? "button" : undefined}
-                accessibilityLabel={banner.accessibilityLabel}
+                accessibilityLabel={`${banner.accessibilityLabel}, ${i + 1} of ${BANNERS.length}`}
+                accessibilityHint={
+                  banner.onPress ? "Opens this highlight" : "Informational highlight"
+                }
                 style={[styles.bannerCard, { backgroundColor: banner.bg }]}
               >
-                <View style={styles.bannerText}>
+                <View style={styles.bannerText} {...DECORATIVE}>
                   <AppText variant="labelLG" color={colors.text}>
                     {banner.title}
                   </AppText>
                 </View>
-                <View style={styles.bannerArt}>
+                <View style={styles.bannerArt} {...DECORATIVE}>
                   <BannerArt kind={banner.illustration} />
                 </View>
               </Pressable>
@@ -428,20 +776,28 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
           ))}
         </ScrollView>
 
-        <View style={styles.quickHead}>
-          <AppText variant="headingSM">Quick send </AppText>
-          <AppText variant="headingSM" color={colors.text}>
-            6
+        <View
+          style={styles.quickHead}
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel={`Quick send, ${QUICK_SEND.length} contacts`}
+        >
+          <AppText variant="headingSM" heading={2} importantForAccessibility="no">
+            Quick send{" "}
+          </AppText>
+          <AppText variant="headingSM" color={colors.text} importantForAccessibility="no">
+            {QUICK_SEND.length}
           </AppText>
         </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.hRow}
+          accessibilityRole="list"
           role="list"
-          accessibilityLabel="Quick send"
+          accessibilityLabel={`Quick send, ${QUICK_SEND.length} contacts`}
         >
-          {QUICK_SEND.map((person) => {
+          {QUICK_SEND.map((person, index) => {
             const selected = person.name === selectedSend;
             return (
               <View key={person.name} role="listitem">
@@ -452,20 +808,100 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
                   }}
                   accessibilityRole="button"
                   role="button"
-                  accessibilityLabel={`Quick send to ${person.name}`}
+                  accessible
+                  accessibilityLabel={`Quick send to ${person.name}, ${index + 1} of ${QUICK_SEND.length}`}
+                  accessibilityHint="Starts a voice transfer to this contact"
                   accessibilityState={{ selected }}
                   style={styles.quickItem}
                 >
-                  <Avatar source={person.image} size={58} />
-                  <AppText variant="caption" numberOfLines={1} style={styles.quickName}>
-                    {person.name}
-                  </AppText>
-                  <View style={[styles.caret, !selected && styles.caretHidden]} />
+                  <View {...DECORATIVE}>
+                    <Avatar source={person.image} size={58} />
+                    <AppText variant="caption" numberOfLines={1} style={styles.quickName}>
+                      {person.name}
+                    </AppText>
+                    <View style={[styles.caret, !selected && styles.caretHidden]} />
+                  </View>
                 </Pressable>
               </View>
             );
           })}
         </ScrollView>
+
+        <View style={styles.lastActionsBlock}>
+          <View style={styles.lastHeader}>
+            <AppText variant="headingSM" heading={2} color={colors.textMuted}>
+              Last actions
+            </AppText>
+            <Pressable
+              onPress={() => onNav("history")}
+              accessibilityRole="button"
+              role="button"
+              accessible
+              accessibilityLabel="See all transactions"
+              accessibilityHint="Opens full transaction history"
+              hitSlop={8}
+              style={styles.lastHeaderRight}
+            >
+              <AppText variant="caption" color={colors.textMuted} importantForAccessibility="no">
+                See all
+              </AppText>
+            </Pressable>
+          </View>
+
+          <View
+            accessibilityRole="list"
+            role="list"
+            accessibilityLabel={`Last actions, ${visibleActions.length} items`}
+          >
+            {visibleActions.map((action, index) => {
+              const amountSpoken = formatCurrencySpoken(action.amount);
+              const isLast = index === visibleActions.length - 1;
+              return (
+                <View
+                  key={action.id}
+                  accessible
+                  role="listitem"
+                  accessibilityLabel={`${action.label}, ${action.sub}, ${amountSpoken}`}
+                  style={[styles.actionRow, isLast && styles.actionRowLast]}
+                >
+                  <View
+                    style={[
+                      styles.actionMark,
+                      action.tint === "spotify"
+                        ? styles.spotifyMark
+                        : { backgroundColor: tintColor(action.tint, colors) },
+                    ]}
+                    {...DECORATIVE}
+                  >
+                    {action.icon === "spotify" ? (
+                      <MciIcon name="spotify" size={22} color={colors.white} />
+                    ) : (
+                      <Icon name={action.icon} size={20} color={colors.text} />
+                    )}
+                  </View>
+                  <View style={styles.actionText} {...DECORATIVE}>
+                    <AppText variant="labelSM" numberOfLines={1}>
+                      {action.label}
+                    </AppText>
+                    <AppText variant="caption" numberOfLines={1}>
+                      {action.sub}
+                    </AppText>
+                  </View>
+                  <AppText
+                    variant="amount"
+                    color={action.amount > 0 ? colors.success : colors.text}
+                    numberOfLines={1}
+                    style={styles.actionAmount}
+                    importantForAccessibility="no"
+                  >
+                    {action.amount > 0 ? "+" : "-"}
+                    {formatCurrency(Math.abs(action.amount))}
+                  </AppText>
+                </View>
+              );
+            })}
+          </View>
+        </View>
       </ScrollView>
     </Screen>
   );
@@ -473,7 +909,9 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
 
 const MIC = 92;
 
-function createHomeStyles(colors: Palette) {
+type HomeStyleSheet = Record<string, ViewStyle | TextStyle | ImageStyle>;
+
+function createHomeStyles(colors: Palette): HomeStyleSheet {
   return {
   root: { flex: 1 },
   flex: { flex: 1 },
@@ -496,10 +934,14 @@ function createHomeStyles(colors: Palette) {
     marginRight: spacing.md,
     minWidth: 0,
   },
+  profileAvatarHit: {
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   hello: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
     minWidth: 0,
   },
   helloName: {
@@ -510,13 +952,25 @@ function createHomeStyles(colors: Palette) {
     alignItems: "center",
   },
   iconBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
+  notifDot: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.purple,
+  },
   balanceLabel: {
     marginBottom: 6,
+  },
+  balanceBlock: {
+    alignItems: "center",
   },
   balance: {
     letterSpacing: -1.2,
@@ -549,7 +1003,7 @@ function createHomeStyles(colors: Palette) {
     backgroundColor: "rgba(228,228,235,0.92)",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#4A2DBA",
+    shadowColor: "#5528E8",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.22,
     shadowRadius: 20,
@@ -575,15 +1029,22 @@ function createHomeStyles(colors: Palette) {
     left: 0,
     right: 0,
     padding: spacing.lg,
-    maxWidth: BANNER_WIDTH - 70,
+    paddingRight: spacing["2xl"],
+    maxWidth: BANNER_WIDTH - 108,
+    zIndex: 2,
   },
   bannerArt: {
     position: "absolute",
-    right: -28,
-    bottom: -30,
+    right: -22,
+    bottom: -26,
+    zIndex: 1,
   },
   sectionTitle: {
+    marginBottom: spacing.sm,
+  },
+  sectionLead: {
     marginBottom: spacing.md,
+    color: colors.textMuted,
   },
   hRow: {
     flexDirection: "row",
@@ -591,6 +1052,12 @@ function createHomeStyles(colors: Palette) {
     gap: 14,
     paddingRight: 8,
     marginBottom: spacing["2xl"],
+  },
+  recipientHit: {
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
   },
   moreCircle: {
     width: 58,
@@ -600,23 +1067,81 @@ function createHomeStyles(colors: Palette) {
     alignItems: "center",
     justifyContent: "center",
   },
-  lastLabel: {
+  quickAccessRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingRight: 8,
+    marginBottom: spacing["2xl"],
+  },
+  quickAccessItem: {
+    width: 76,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingVertical: spacing.xs,
+  },
+  quickAccessInner: {
+    width: "100%",
+    alignItems: "center",
+    gap: 8,
+  },
+  quickAccessPressed: {
+    opacity: 0.85,
+  },
+  quickAccessDisabled: {
+    opacity: 0.72,
+  },
+  quickAccessLabel: {
+    width: "100%",
+    textAlign: "center",
+    color: colors.text,
+    lineHeight: 16,
+    minHeight: 32,
+  },
+  lastActionsBlock: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  lastHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 44,
     marginBottom: spacing.md,
-    color: colors.textMuted,
+  },
+  lastHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: spacing["2xl"],
+    minHeight: 48,
+    marginBottom: spacing.md,
   },
-  spotifyMark: {
+  actionRowLast: {
+    marginBottom: 0,
+  },
+  actionMark: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: "#1DB954",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
+  },
+  actionText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  actionAmount: {
+    flexShrink: 0,
+    marginLeft: 4,
+  },
+  spotifyMark: {
+    backgroundColor: "#1DB954",
   },
   quickHead: {
     flexDirection: "row",
@@ -626,6 +1151,7 @@ function createHomeStyles(colors: Palette) {
   },
   quickItem: {
     width: 64,
+    minHeight: 88,
     alignItems: "center",
     gap: 6,
   },

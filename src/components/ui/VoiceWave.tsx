@@ -11,15 +11,15 @@ import Animated, {
 } from "react-native-reanimated";
 
 const BARS = [
-  { h: 18, color: "#B57CFF", delay: 0 },
-  { h: 36, color: "#9B5CFF", delay: 80 },
-  { h: 58, color: "#7B4DFF", delay: 40 },
-  { h: 86, color: "#E14BFF", delay: 120 },
-  { h: 48, color: "#C45CFF", delay: 20 },
-  { h: 72, color: "#8A4DFF", delay: 100 },
-  { h: 32, color: "#D080FF", delay: 60 },
-  { h: 54, color: "#6D4AFF", delay: 140 },
-  { h: 24, color: "#F07AFF", delay: 30 },
+  { h: 18, color: "#2830F0", delay: 0 },
+  { h: 36, color: "#3A30F0", delay: 80 },
+  { h: 58, color: "#5528E8", delay: 40 },
+  { h: 86, color: "#6B20E8", delay: 120 },
+  { h: 48, color: "#7B20E8", delay: 20 },
+  { h: 72, color: "#4A28E8", delay: 100 },
+  { h: 32, color: "#3038F0", delay: 60 },
+  { h: 54, color: "#6020E8", delay: 140 },
+  { h: 24, color: "#8020E8", delay: 30 },
 ];
 
 function Bar({ height, color, delay }: { height: number; color: string; delay: number }) {
@@ -56,7 +56,12 @@ function Bar({ height, color, delay }: { height: number; color: string; delay: n
 
 export default function VoiceWave() {
   return (
-    <View style={styles.row} accessibilityElementsHidden>
+    <View
+      style={styles.row}
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
       {BARS.map((b, i) => (
         <Bar key={i} height={b.h} color={b.color} delay={b.delay} />
       ))}

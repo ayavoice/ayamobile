@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { AppText, Card, Icon, IconWell, Screen, ScreenHeader } from "../components/ui";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { colors, radii, spacing } from "../theme";
 
 type Props = { onBack: () => void };
@@ -32,53 +33,85 @@ export default function HelpScreen({ onBack }: Props) {
       <ScreenHeader title="Help" onBack={onBack} />
 
       <View style={styles.body}>
-        <View style={styles.call}>
-          <IconWell backgroundColor={colors.white} size={64} radius={20}>
-            <Icon name="call" size={28} color={colors.text} />
-          </IconWell>
+        <View style={styles.call} accessible={false}>
+          <View {...DECORATIVE_A11Y}>
+            <IconWell backgroundColor={colors.white} size={64} radius={20}>
+              <Icon name="call" size={28} color={colors.text} />
+            </IconWell>
+          </View>
           <AppText variant="heading" align="center" color={colors.textOnYellow} style={styles.callTitle}>
             Speak to a support agent
           </AppText>
           <AppText variant="bodySM" align="center" color={colors.textInverseMuted} style={styles.callSub}>
             Free call, 24/7, in Twi, Ewe, or English
           </AppText>
-          <Pressable style={styles.callBtn} accessibilityRole="button" role="button">
-            <Icon name="call-outline" size={18} color={colors.text} />
-            <AppText variant="labelMD" color={colors.text}>
+          <Pressable
+            style={styles.callBtn}
+            accessibilityRole="button"
+            role="button"
+            accessibilityLabel="Call support at 0800-AYA-HELP"
+            accessibilityHint="Starts a free support call"
+          >
+            <View {...DECORATIVE_A11Y}>
+              <Icon name="call-outline" size={18} color={colors.text} />
+            </View>
+            <AppText variant="labelMD" color={colors.text} importantForAccessibility="no">
               Call 0800-AYA-HELP
             </AppText>
           </Pressable>
         </View>
 
-        {FAQS.map((faq) => (
-          <Card key={faq.q}>
-            <View style={styles.faqHead}>
-              <Icon name="help-circle" size={20} color={colors.text} />
-              <AppText variant="labelSM" style={styles.q}>
-                {faq.q}
-              </AppText>
+        <View
+          accessibilityRole="list"
+          role="list"
+          accessibilityLabel="Frequently asked questions"
+          style={styles.faqList}
+        >
+          {FAQS.map((faq) => (
+            <View
+              key={faq.q}
+              role="listitem"
+              accessible
+              accessibilityLabel={`${faq.q}. ${faq.a}`}
+            >
+              <Card>
+                <View style={styles.faqHead} importantForAccessibility="no">
+                  <View {...DECORATIVE_A11Y}>
+                    <Icon name="help-circle" size={20} color={colors.text} />
+                  </View>
+                  <AppText variant="labelSM" style={styles.q} importantForAccessibility="no">
+                    {faq.q}
+                  </AppText>
+                </View>
+                <AppText variant="bodySM" importantForAccessibility="no">{faq.a}</AppText>
+              </Card>
             </View>
-            <AppText variant="bodySM">{faq.a}</AppText>
-          </Card>
-        ))}
+          ))}
+        </View>
 
-        <AppText variant="headingSM">Accessible error examples</AppText>
+        <AppText variant="headingSM" heading={2}>
+          Accessible error examples
+        </AppText>
         <Pressable
           onPress={() => setErrorDemo((v) => !v)}
           style={styles.toggleErrors}
           accessibilityRole="button"
           role="button"
+          accessibilityLabel={errorDemo ? "Hide error states" : "Show error states"}
+          accessibilityState={{ expanded: errorDemo }}
         >
-          <AppText variant="labelSM">
+          <AppText variant="labelSM" importantForAccessibility="no">
             {errorDemo ? "Hide" : "Show"} error states
           </AppText>
         </Pressable>
 
         {errorDemo ? (
           <>
-            <View style={styles.fail}>
+            <View style={styles.fail} accessible={false}>
               <View style={styles.errHead}>
-                <Icon name="warning" size={28} color={colors.danger} />
+                <View {...DECORATIVE_A11Y}>
+                  <Icon name="warning" size={28} color={colors.danger} />
+                </View>
                 <AppText variant="labelMD" color={colors.danger}>
                   Transaction failed
                 </AppText>
@@ -87,22 +120,36 @@ export default function HelpScreen({ onBack }: Props) {
                 Your money was not sent. No money was taken from your account.
               </AppText>
               <View style={styles.errActions}>
-                <Pressable style={styles.tryAgain}>
-                  <AppText variant="labelXS" color={colors.white}>
+                <Pressable
+                  style={styles.tryAgain}
+                  accessibilityRole="button"
+                  role="button"
+                  accessibilityLabel="Try again"
+                  accessibilityHint="Retries the failed transaction"
+                >
+                  <AppText variant="labelXS" color={colors.white} importantForAccessibility="no">
                     Try again
                   </AppText>
                 </Pressable>
-                <Pressable style={styles.callSupport}>
-                  <AppText variant="labelXS" color={colors.danger}>
+                <Pressable
+                  style={styles.callSupport}
+                  accessibilityRole="button"
+                  role="button"
+                  accessibilityLabel="Call support"
+                  accessibilityHint="Calls Aya support about this error"
+                >
+                  <AppText variant="labelXS" color={colors.danger} importantForAccessibility="no">
                     Call support
                   </AppText>
                 </Pressable>
               </View>
             </View>
 
-            <View style={styles.offline}>
+            <View style={styles.offline} accessible={false}>
               <View style={styles.errHead}>
-                <Icon name="cloud-offline" size={28} color={colors.warningDark} />
+                <View {...DECORATIVE_A11Y}>
+                  <Icon name="cloud-offline" size={28} color={colors.warningDark} />
+                </View>
                 <AppText variant="labelMD" color={colors.warningDark}>
                   No internet connection
                 </AppText>
@@ -110,8 +157,14 @@ export default function HelpScreen({ onBack }: Props) {
               <AppText variant="bodySM" color={colors.warningText}>
                 Check your mobile data or Wi-Fi. Aya needs a connection to send money.
               </AppText>
-              <Pressable style={styles.retry}>
-                <AppText variant="labelXS" color={colors.textOnYellow}>
+              <Pressable
+                style={styles.retry}
+                accessibilityRole="button"
+                role="button"
+                accessibilityLabel="Retry"
+                accessibilityHint="Tries connecting again"
+              >
+                <AppText variant="labelXS" color={colors.textOnYellow} importantForAccessibility="no">
                   Retry
                 </AppText>
               </Pressable>
@@ -150,6 +203,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  faqList: {
+    gap: spacing.md,
+  },
   faqHead: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -165,6 +221,8 @@ const styles = StyleSheet.create({
     borderRadius: radii["2xl"],
     backgroundColor: colors.surfaceCard,
     alignItems: "center",
+    minHeight: 44,
+    justifyContent: "center",
   },
   fail: {
     backgroundColor: colors.dangerSurface,

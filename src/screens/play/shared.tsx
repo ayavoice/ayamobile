@@ -1,5 +1,6 @@
 import { Pressable, View } from "react-native";
 import { AppText, Icon } from "../../components/ui";
+import { DECORATIVE_A11Y } from "../../lib/currency";
 import { radii, spacing } from "../../theme";
 import type { IonName } from "../../content/play";
 
@@ -44,7 +45,7 @@ export function StarRow({
   emptyColor: string;
 }) {
   return (
-    <View style={{ flexDirection: "row", gap: 2 }}>
+    <View style={{ flexDirection: "row", gap: 2 }} {...DECORATIVE_A11Y}>
       {[0, 1, 2].map((i) => (
         <Icon
           key={i}
@@ -76,14 +77,16 @@ export function ChunkyButton({
   disabled?: boolean;
 }) {
   const resolvedTextColor = textColor ?? contrastColor(color);
+  const isDisabled = !!disabled;
   return (
-    <View style={{ borderRadius: radii["2xl"], backgroundColor: darken(color, 40), opacity: disabled ? 0.5 : 1 }}>
+    <View style={{ borderRadius: radii["2xl"], backgroundColor: darken(color, 40), opacity: isDisabled ? 0.5 : 1 }}>
       <Pressable
-        disabled={disabled}
+        disabled={isDisabled}
         onPress={onPress}
         accessibilityRole="button"
         role="button"
         accessibilityLabel={label}
+        accessibilityState={{ disabled: isDisabled }}
         style={({ pressed }) => ({
           flexDirection: "row",
           alignItems: "center",
@@ -96,11 +99,19 @@ export function ChunkyButton({
           marginTop: pressed ? 4 : 0,
         })}
       >
-        {icon && !iconTrailing ? <Icon name={icon} size={18} color={resolvedTextColor} /> : null}
-        <AppText variant="labelMD" color={resolvedTextColor}>
+        {icon && !iconTrailing ? (
+          <View {...DECORATIVE_A11Y}>
+            <Icon name={icon} size={18} color={resolvedTextColor} />
+          </View>
+        ) : null}
+        <AppText variant="labelMD" color={resolvedTextColor} importantForAccessibility="no">
           {label}
         </AppText>
-        {icon && iconTrailing ? <Icon name={icon} size={18} color={resolvedTextColor} /> : null}
+        {icon && iconTrailing ? (
+          <View {...DECORATIVE_A11Y}>
+            <Icon name={icon} size={18} color={resolvedTextColor} />
+          </View>
+        ) : null}
       </Pressable>
     </View>
   );

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import type { ComponentProps } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { AppText, Button, Icon, IconWell, Screen, ScreenFooter, ScreenHeader } from "../components/ui";
-import { colors, radii, spacing } from "../theme";
+import { AppText, Button, Icon, Screen, ScreenFooter, ScreenHeader } from "../components/ui";
+import { DECORATIVE_A11Y } from "../lib/currency";
+import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Method = "finger" | "face" | "device";
 type IonName = ComponentProps<typeof Ionicons>["name"];
@@ -12,10 +13,12 @@ type Props = { onSuccess: () => void; onBack: () => void };
 const METHODS: { id: Method; icon: IonName; label: string }[] = [
   { id: "finger", icon: "finger-print", label: "Fingerprint" },
   { id: "face", icon: "scan", label: "Face unlock" },
-  { id: "device", icon: "keypad", label: "Device unlock" },
+  { id: "device", icon: "keypad", label: "Passcode" },
 ];
 
 export default function BiometricScreen({ onSuccess, onBack }: Props) {
+  const colors = useColors();
+  const styles = usePaletteStyles(createStyles);
   const [method, setMethod] = useState<Method>("finger");
   const [scanning, setScanning] = useState(false);
 
@@ -28,35 +31,20 @@ export default function BiometricScreen({ onSuccess, onBack }: Props) {
   const active = METHODS.find((m) => m.id === method)!;
 
   return (
-    <Screen background={colors.white}>
-      <ScreenHeader title="Confirm privately" onBack={onBack} />
-      <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.body}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.privacy}>
-          <IconWell backgroundColor={colors.white} size={40} radius={12}>
-            <Icon name="mic-off" size={20} color={colors.successDark} />
-          </IconWell>
-          <View style={styles.flex}>
-            <AppText variant="labelSM" color={colors.successDark}>
-              Microphone is OFF
-            </AppText>
-            <AppText variant="caption" color={colors.successMid}>
-              Voice capture stopped before authorization
-            </AppText>
-          </View>
-        </View>
+    <Screen>
+      <ScreenHeader title="Authorize" onBack={onBack} />
 
-        <View>
-          <AppText variant="body" align="center" style={styles.sub}>
-            Never speak your PIN, use fingerprint, face, or device unlock.
+      <View style={styles.body}>
+        <View style={styles.intro}>
+          <AppText variant="headingSM" align="center" heading={2}>
+            Confirm it’s you
+          </AppText>
+          <AppText variant="bodySM" align="center" color={colors.textMuted}>
+            Fingerprint, face, or passcode
           </AppText>
         </View>
 
-        <View style={styles.methods}>
+        <View style={styles.methods} accessibilityLabel="Authentication method">
           {METHODS.map((m) => {
             const on = method === m.id;
             return (
@@ -69,8 +57,10 @@ export default function BiometricScreen({ onSuccess, onBack }: Props) {
                 accessibilityLabel={m.label}
                 style={[styles.method, on ? styles.methodOn : styles.methodOff]}
               >
-                <Icon name={m.icon} size={28} color={colors.text} />
-                <AppText variant="labelXS" align="center">
+                <View {...DECORATIVE_A11Y}>
+                  <Icon name={m.icon} size={26} color={colors.text} />
+                </View>
+                <AppText variant="labelXS" align="center" importantForAccessibility="no">
                   {m.label}
                 </AppText>
               </Pressable>
@@ -80,29 +70,28 @@ export default function BiometricScreen({ onSuccess, onBack }: Props) {
 
         <Pressable
           onPress={handleAuth}
+          accessibilityRole="button"
+          role="button"
           accessibilityLabel={`Authenticate with ${active.label}`}
+          accessibilityState={{ busy: scanning }}
           style={[styles.auth, scanning ? styles.authOn : styles.authOff]}
         >
-          <Icon
-            name={active.icon}
-            size={48}
-            color={scanning ? colors.successBright : colors.text}
-          />
+          <View {...DECORATIVE_A11Y}>
+            <Icon
+              name={active.icon}
+              size={48}
+              color={scanning ? colors.successBright : colors.text}
+            />
+          </View>
           <AppText
             variant="labelXS"
             color={scanning ? colors.successBright : colors.textSubtle}
+            importantForAccessibility="no"
           >
-            {scanning ? "Verifying…" : "Touch here"}
+            {scanning ? "Verifying…" : "Touch to confirm"}
           </AppText>
         </Pressable>
-
-        <View style={styles.warn}>
-          <Icon name="warning" size={18} color={colors.warningDark} />
-          <AppText variant="bodyXS" color={colors.warningDark} style={styles.textFlex}>
-            Device unlock is your phone lock, not your Mobile Money PIN or OTP.
-          </AppText>
-        </View>
-      </ScrollView>
+      </View>
 
       <ScreenFooter>
         <Button onPress={onBack} variant="ghost">
@@ -113,77 +102,53 @@ export default function BiometricScreen({ onSuccess, onBack }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    minHeight: 0,
-  },
-  body: {
-    flexGrow: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing["4xl"],
-    paddingVertical: spacing.lg,
-    gap: spacing["2xl"],
-  },
-  privacy: {
-    width: "100%",
-    backgroundColor: colors.successSurface,
-    borderRadius: radii["2xl"],
-    paddingVertical: 14,
-    paddingHorizontal: spacing.xl,
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
-  },
-  textFlex: {
-    flex: 1,
-    minWidth: 0,
-  },
-  sub: {
-    marginTop: spacing.sm,
-  },
-  methods: {
-    flexDirection: "row",
-    gap: 10,
-    width: "100%",
-  },
-  method: {
-    flex: 1,
-    borderRadius: radii.xl,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.sm,
-    alignItems: "center",
-    gap: 6,
-  },
-  methodOn: {
-    backgroundColor: colors.washPurple,
-  },
-  methodOff: {
-    backgroundColor: colors.surfaceCard,
-  },
-  auth: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-  },
-  authOn: {
-    backgroundColor: colors.successSurface,
-  },
-  authOff: {
-    backgroundColor: colors.surfaceCard,
-  },
-  warn: {
-    width: "100%",
-    backgroundColor: colors.surfaceCard,
-    borderRadius: radii.lg,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "flex-start",
-  },
-});
+function createStyles(colors: Palette) {
+  return {
+    body: {
+      flex: 1,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      paddingHorizontal: spacing.xl,
+      gap: spacing["2xl"],
+    },
+    intro: {
+      alignItems: "center" as const,
+      gap: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    methods: {
+      flexDirection: "row" as const,
+      gap: 10,
+      width: "100%" as const,
+    },
+    method: {
+      flex: 1,
+      borderRadius: radii.xl,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.sm,
+      alignItems: "center" as const,
+      gap: 6,
+      minHeight: 88,
+    },
+    methodOn: {
+      backgroundColor: colors.washPurple,
+    },
+    methodOff: {
+      backgroundColor: colors.surfaceCard,
+    },
+    auth: {
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      gap: spacing.sm,
+    },
+    authOn: {
+      backgroundColor: colors.successSurface,
+    },
+    authOff: {
+      backgroundColor: colors.surfaceCard,
+    },
+  };
+}

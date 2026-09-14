@@ -1,13 +1,20 @@
-import { useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInput as RNTextInput,
+} from "react-native";
 import { AppText, Avatar, Button, Icon, Screen, ScreenFooter } from "../components/ui";
+import NotificationsModal from "../components/NotificationsModal";
 import { brandImages } from "../content/brand";
 import { useAppPrefs } from "../context/AppPrefs";
-import { spacing, useColors } from "../theme";
+import { formatCurrencySpoken } from "../lib/currency";
+import { fonts, spacing, useColors } from "../theme";
 
 type Props = { onSend: () => void; onBack: () => void };
-
-const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "⌫"];
 
 function recipientFrom(details: { label: string; value: string }[]) {
   const name = details.find((d) => d.label === "To")?.value ?? "Ricky Martin";
@@ -15,35 +22,45 @@ function recipientFrom(details: { label: string; value: string }[]) {
   return { name, number };
 }
 
+function sanitizeAmount(raw: string) {
+  let next = raw.replace(/[^0-9.]/g, "");
+  const firstDot = next.indexOf(".");
+  if (firstDot !== -1) {
+    next =
+      next.slice(0, firstDot + 1) + next.slice(firstDot + 1).replace(/\./g, "");
+    const [whole, decimals = ""] = next.split(".");
+    next = `${whole}.${decimals.slice(0, 2)}`;
+  }
+  if (next.startsWith(".")) next = `0${next}`;
+  return next;
+}
+
 export default function SendMoneyScreen({ onSend, onBack }: Props) {
   const colors = useColors();
   const { flow } = useAppPrefs();
+  const inputRef = useRef<RNTextInput>(null);
   const recipient = useMemo(() => recipientFrom(flow.details), [flow.details]);
   const initialAmount = useMemo(
     () => flow.confirmHero.replace(/[^0-9.]/g, "") || "580.00",
     [flow.confirmHero],
   );
   const [amount, setAmount] = useState(initialAmount);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-  const onKeyPress = (key: string) => {
-    if (key === "⌫") {
-      setAmount((v) => (v.length > 1 ? v.slice(0, -1) : "0"));
-      return;
-    }
-    if (key === ".") {
-      if (amount.includes(".")) return;
-      setAmount((v) => v + key);
-      return;
-    }
-    const decimalIndex = amount.indexOf(".");
-    if (decimalIndex !== -1 && amount.length - decimalIndex - 1 >= 2) return;
-    setAmount((v) => (v === "0" ? key : v + key));
-  };
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 250);
+    return () => clearTimeout(t);
+  }, []);
 
   const canSend = Number(amount) > 0;
+  const amountSpoken = formatCurrencySpoken(amount || "0");
 
   return (
     <Screen style={styles.root}>
+      <NotificationsModal
+        visible={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
       <View style={styles.top}>
         <Pressable
           onPress={onBack}
@@ -55,12 +72,18 @@ export default function SendMoneyScreen({ onSend, onBack }: Props) {
         >
           <Icon name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <AppText variant="headingSM" heading={1}>Send Money</AppText>
+        <AppText variant="headingSM" heading={1}>
+          Send Money
+        </AppText>
         <Pressable
-          onPress={() => Alert.alert("Notifications", "You're all caught up.")}
+          onPress={() => {
+            Keyboard.dismiss();
+            setNotificationsOpen(true);
+          }}
           accessibilityRole="button"
           role="button"
           accessibilityLabel="Notifications"
+          accessibilityHint="Opens your notifications"
           hitSlop={8}
           style={styles.topBtn}
         >
@@ -70,53 +93,81 @@ export default function SendMoneyScreen({ onSend, onBack }: Props) {
 
       <View style={styles.body}>
         <View style={styles.recipient}>
-          <Avatar source={brandImages.ricky} size={108} />
-          <AppText variant="heading" color={colors.text} style={styles.name}>
-            {recipient.name}
-          </AppText>
-          <AppText variant="bodySM" color={colors.textSubtle}>
-            {recipient.number}
-          </AppText>
-          <Pressable onPress={onBack} accessibilityLabel="Change recipient" hitSlop={8}>
-            <AppText variant="labelXS" color={colors.textSubtle} style={styles.change}>
+          <View
+            accessible
+            accessibilityLabel={`${recipient.name}, ${recipient.number}`}
+            style={styles.recipientInfo}
+          >
+            <Avatar source={brandImages.ricky} size={108} />
+            <AppText
+              variant="heading"
+              color={colors.text}
+              style={styles.name}
+              importantForAccessibility="no"
+            >
+              {recipient.name}
+            </AppText>
+            <AppText variant="bodySM" color={colors.textSubtle} importantForAccessibility="no">
+              {recipient.number}
+            </AppText>
+          </View>
+          <Pressable
+            onPress={onBack}
+            accessibilityRole="button"
+            role="button"
+            accessibilityLabel="Change recipient"
+            accessibilityHint="Goes back to change who receives the money"
+            hitSlop={8}
+          >
+            <AppText
+              variant="labelXS"
+              color={colors.textSubtle}
+              style={styles.change}
+              importantForAccessibility="no"
+            >
               Change
             </AppText>
           </Pressable>
         </View>
 
-        <AppText
-          variant="displayLG"
-          color={colors.text}
-          align="center"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          style={styles.amount}
+        <Pressable
+          onPress={() => inputRef.current?.focus()}
+          accessibilityRole="none"
+          style={styles.amountWrap}
         >
-          {`GH₵${amount.includes(".") ? amount : `${amount}.00`}`}
-        </AppText>
-
-        <View style={styles.keypad}>
-          {KEYS.map((key) => (
-            <Pressable
-              key={key}
-              onPress={() => onKeyPress(key)}
-              accessibilityLabel={key === "⌫" ? "Delete" : `Digit ${key}`}
-              style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
-            >
-              {key === "⌫" ? (
-                <Icon name="backspace-outline" size={24} color={colors.text} />
-              ) : (
-                <AppText variant="titleSM" color={colors.text}>
-                  {key}
-                </AppText>
-              )}
-            </Pressable>
-          ))}
-        </View>
+          <AppText
+            variant="displayLG"
+            color={colors.text}
+            style={styles.currencyPrefix}
+            importantForAccessibility="no"
+          >
+            GH₵
+          </AppText>
+          <TextInput
+            ref={inputRef}
+            value={amount}
+            onChangeText={(text) => setAmount(sanitizeAmount(text))}
+            keyboardType="decimal-pad"
+            autoFocus
+            returnKeyType="done"
+            selectTextOnFocus
+            caretHidden={false}
+            placeholder="0.00"
+            placeholderTextColor={colors.textSubtle}
+            style={[styles.amountInput, { color: colors.text }]}
+            accessibilityLabel={`Amount, ${amountSpoken}`}
+            accessibilityHint="Edit the amount using the system keyboard"
+          />
+        </Pressable>
       </View>
 
       <ScreenFooter>
-        <Button onPress={onSend} disabled={!canSend} variant="purple">
+        <Button
+          onPress={onSend}
+          disabled={!canSend}
+          variant="purple"
+          accessibilityHint="Confirms amount and continues to authentication"
+        >
           Send
         </Button>
       </ScreenFooter>
@@ -143,11 +194,15 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingHorizontal: spacing.screenX,
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    gap: spacing["2xl"],
   },
   recipient: {
     alignItems: "center",
     paddingTop: spacing.sm,
+  },
+  recipientInfo: {
+    alignItems: "center",
   },
   name: {
     marginTop: spacing.md,
@@ -156,21 +211,26 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textDecorationLine: "underline",
   },
-  amount: {
-    letterSpacing: -1,
-  },
-  keypad: {
+  amountWrap: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    paddingBottom: spacing.sm,
-  },
-  key: {
-    width: "33.33%",
-    height: 58,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 64,
+    paddingHorizontal: spacing.sm,
   },
-  keyPressed: {
-    opacity: 0.45,
+  currencyPrefix: {
+    letterSpacing: -1,
+  },
+  amountInput: {
+    flexShrink: 1,
+    minWidth: 120,
+    maxWidth: "70%",
+    fontFamily: fonts.display.black,
+            fontSize: 38,
+    letterSpacing: -1.2,
+    padding: 0,
+    margin: 0,
+    textAlign: "left",
+    ...({ outlineStyle: "none", outlineWidth: 0 } as object),
   },
 });

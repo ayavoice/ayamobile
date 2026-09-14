@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { AppText, BrandLogo, Button, Screen, ScreenFooter } from "../components/ui";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Props = { onSignup: () => void; onLogin: () => void };
@@ -11,7 +12,9 @@ export default function AuthWelcomeScreen({ onSignup, onLogin }: Props) {
   return (
     <Screen>
       <View style={styles.body}>
-        <BrandLogo height={72} />
+        <View {...DECORATIVE_A11Y}>
+          <BrandLogo height={72} />
+        </View>
         <View style={styles.copy}>
           <AppText variant="titleLG" align="center" heading={1}>
             Let's get you set up

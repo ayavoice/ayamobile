@@ -17,11 +17,17 @@ const TABS: TabItem[] = [
   { kind: "nav", icon: "home", label: "Home", screen: "home" },
   { kind: "nav", icon: "grid-outline", label: "Services", screen: "services" },
   { kind: "speech", label: "Talk" },
-  { kind: "nav", icon: "game-controller-outline", label: "Learn", screen: "game" },
+  { kind: "nav", icon: "bulb-outline", label: "Learn", screen: "game" },
   { kind: "nav", icon: "person-outline", label: "Profile", screen: "profile" },
 ];
 
 export const TAB_ROOT_SCREENS: ScreenId[] = ["home", "services", "game", "profile"];
+
+const DECORATIVE = {
+  accessible: false as const,
+  accessibilityElementsHidden: true,
+  importantForAccessibility: "no-hide-descendants" as const,
+};
 
 type Props = {
   current: ScreenId;
@@ -35,7 +41,8 @@ export default function TabBar({ current, onNav, onStartFlow }: Props) {
 
   return (
     <View
-      role="navigation"
+      accessibilityRole="tablist"
+      role="tablist"
       accessibilityLabel="Main navigation"
       style={[
         styles.tabBar,
@@ -51,10 +58,11 @@ export default function TabBar({ current, onNav, onStartFlow }: Props) {
               accessibilityRole="button"
               role="button"
               accessibilityLabel="Talk to send money"
+              accessibilityHint="Starts a voice-guided money transfer"
               hitSlop={6}
               style={styles.tab}
             >
-              <View style={[styles.speechIcon, { backgroundColor: colors.purple }]}>
+              <View style={[styles.speechIcon, { backgroundColor: colors.purple }]} {...DECORATIVE}>
                 <WaveIcon size={28} color={colors.textOnYellow} />
               </View>
               <AppText
@@ -62,6 +70,7 @@ export default function TabBar({ current, onNav, onStartFlow }: Props) {
                 numberOfLines={1}
                 style={[styles.tabLabel, styles.speechLabel]}
                 color={colors.text}
+                importantForAccessibility="no"
               >
                 {tab.label}
               </AppText>
@@ -74,16 +83,19 @@ export default function TabBar({ current, onNav, onStartFlow }: Props) {
           <Pressable
             key={tab.label}
             onPress={() => onNav(tab.screen)}
-            accessibilityRole="button"
-            role="button"
+            accessibilityRole="tab"
+            role="tab"
             accessibilityLabel={tab.label}
+            accessibilityHint={`Opens ${tab.label}`}
             accessibilityState={{ selected: active }}
+            aria-selected={active}
             aria-current={active ? "page" : undefined}
             hitSlop={6}
             style={styles.tab}
           >
             <View
               style={[styles.tabIcon, active && { backgroundColor: colors.purple }]}
+              {...DECORATIVE}
             >
               <Icon name={tab.icon} size={22} color={active ? colors.textOnYellow : colors.textSubtle} />
             </View>
@@ -92,6 +104,7 @@ export default function TabBar({ current, onNav, onStartFlow }: Props) {
               numberOfLines={1}
               style={styles.tabLabel}
               color={active ? colors.text : colors.textSubtle}
+              importantForAccessibility="no"
             >
               {tab.label}
             </AppText>
@@ -119,6 +132,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 2,
     minWidth: 0,
+    minHeight: 48,
   },
   tabIcon: {
     width: 40,

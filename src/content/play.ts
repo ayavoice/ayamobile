@@ -7,6 +7,197 @@ export type GameProgress = { best: number; total: number; plays: number };
 
 export const INITIAL_PROGRESS: GameProgress = { best: 0, total: 0, plays: 0 };
 
+export type LocalGameId =
+  | "oware"
+  | "ampe"
+  | "pilolo"
+  | "chaskele"
+  | "baawa"
+  | "alikoto"
+  | "dame"
+  | "antoakyire";
+
+export type LocalGame = {
+  id: LocalGameId;
+  title: string;
+  subtitle: string;
+  icon: IonName;
+  levelLabel: string;
+  /** Only playable games open a session today; others show as coming soon. */
+  playable: boolean;
+  wash: "purple" | "blue" | "yellow" | "green";
+};
+
+/** Classic Ghanaian / local practice games in the Learn hub. */
+export const LOCAL_GAMES: LocalGame[] = [
+  {
+    id: "oware",
+    title: "Ama's Market Day",
+    subtitle: "Practice safe spending choices",
+    icon: "cart-outline",
+    levelLabel: "PRACTICE",
+    playable: true,
+    wash: "purple",
+  },
+  {
+    id: "ampe",
+    title: "Ampe",
+    subtitle: "Clap, jump, and match your steps",
+    icon: "footsteps-outline",
+    levelLabel: "PLAY",
+    playable: false,
+    wash: "yellow",
+  },
+  {
+    id: "pilolo",
+    title: "Pilolo",
+    subtitle: "Find the hidden stick and race back",
+    icon: "search-outline",
+    levelLabel: "PLAY",
+    playable: false,
+    wash: "blue",
+  },
+  {
+    id: "chaskele",
+    title: "Chaskele",
+    subtitle: "Street cricket with a can and sticks",
+    icon: "baseball-outline",
+    levelLabel: "PLAY",
+    playable: false,
+    wash: "green",
+  },
+  {
+    id: "baawa",
+    title: "Ba-awa",
+    subtitle: "Akan mancala sow seeds, capture fours",
+    icon: "leaf-outline",
+    levelLabel: "PLAY",
+    playable: false,
+    wash: "purple",
+  },
+  {
+    id: "alikoto",
+    title: "Alikoto",
+    subtitle: "Spin the top and keep it dancing",
+    icon: "sync-outline",
+    levelLabel: "PLAY",
+    playable: false,
+    wash: "yellow",
+  },
+  {
+    id: "dame",
+    title: "Dame",
+    subtitle: "Ghana draughts plan every jump",
+    icon: "grid-outline",
+    levelLabel: "PLAY",
+    playable: false,
+    wash: "blue",
+  },
+  {
+    id: "antoakyire",
+    title: "Antoakyire",
+    subtitle: "Circle game catch who's behind you",
+    icon: "ellipse-outline",
+    levelLabel: "PLAY",
+    playable: false,
+    wash: "green",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Learn paths: thinking, safety, and scam awareness
+// ---------------------------------------------------------------------------
+
+export type LearnPathId = "think" | "safety" | "scam-words" | "practice";
+
+export type LearnPath = {
+  id: LearnPathId;
+  title: string;
+  subtitle: string;
+  icon: IonName;
+  wash: "purple" | "blue" | "yellow" | "green";
+  cta: string;
+  playable: boolean;
+};
+
+export const LEARN_PATHS: LearnPath[] = [
+  {
+    id: "think",
+    title: "Think first",
+    subtitle: "Pause, check, then send money",
+    icon: "bulb-outline",
+    wash: "yellow",
+    cta: "Learn",
+    playable: false,
+  },
+  {
+    id: "safety",
+    title: "Stay safe",
+    subtitle: "PIN privacy and MoMo habits",
+    icon: "shield-checkmark-outline",
+    wash: "green",
+    cta: "Learn",
+    playable: false,
+  },
+  {
+    id: "scam-words",
+    title: "Scam words",
+    subtitle: "Spot pressure words before you tap",
+    icon: "warning-outline",
+    wash: "blue",
+    cta: "Practice",
+    playable: true,
+  },
+  {
+    id: "practice",
+    title: "Practice play",
+    subtitle: "Try Ama's Market Day and more",
+    icon: "game-controller-outline",
+    wash: "purple",
+    cta: "Play",
+    playable: true,
+  },
+];
+
+export type ScamWordRound = {
+  id: string;
+  message: string;
+  options: string[];
+  answer: string;
+  tip: string;
+};
+
+export const SCAM_WORD_ROUNDS: ScamWordRound[] = [
+  {
+    id: "urgent",
+    message: "URGENT: Your wallet will lock in 10 minutes. Send GH₵20 to keep it open.",
+    options: ["URGENT", "wallet", "minutes"],
+    answer: "URGENT",
+    tip: "Real banks almost never rush you with URGENT threats.",
+  },
+  {
+    id: "prize",
+    message: "Congrats! You won GH₵5,000. Pay a small fee now to claim your prize.",
+    options: ["Congrats", "prize", "fee"],
+    answer: "fee",
+    tip: "A real prize never asks you to pay a fee first.",
+  },
+  {
+    id: "pin",
+    message: "MTN support here. Share your PIN so we can fix your account today.",
+    options: ["MTN", "PIN", "account"],
+    answer: "PIN",
+    tip: "Nobody from MTN or Aya will ask for your PIN.",
+  },
+  {
+    id: "agent",
+    message: "Secret agent deal. Send money now and get double back tonight.",
+    options: ["Secret", "double", "tonight"],
+    answer: "Secret",
+    tip: "Secret deals and pressure for now are classic scam bait.",
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Level ladder
 // ---------------------------------------------------------------------------

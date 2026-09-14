@@ -16,7 +16,7 @@ export default function ForgotPinScreen({ onNext, onBack }: Props) {
       <ScreenHeader title="Reset PIN" onBack={onBack} />
 
       <View style={styles.body}>
-        <AppText variant="bodyMD">
+        <AppText variant="bodyMD" accessibilityRole="text">
           Enter the phone number on your account. We'll text a 4-digit code so you can set a new
           PIN.
         </AppText>
@@ -29,12 +29,18 @@ export default function ForgotPinScreen({ onNext, onBack }: Props) {
           prefix="+233"
           keyboardType="phone-pad"
           maxLength={10}
+          helper="We'll text a 4-digit code to this number."
           autoFocus
         />
       </View>
 
       <ScreenFooter>
-        <Button onPress={() => onNext(phone)} disabled={!phoneValid}>
+        <Button
+          onPress={() => onNext(phone)}
+          disabled={!phoneValid}
+          accessibilityLabel="Send code"
+          accessibilityHint="Sends a 4-digit verification code by text message"
+        >
           Send code
         </Button>
       </ScreenFooter>

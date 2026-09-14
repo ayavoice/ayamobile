@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { AppText, Icon, IconWell, PinInput, Screen, ScreenHeader } from "../components/ui";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 const PIN_LENGTH = 4;
@@ -21,6 +22,7 @@ export default function CreatePinScreen({ mode, onDone, onBack }: Props) {
   const confirming = firstPin !== null;
   const title = mode === "signup" ? "Create your PIN" : "Reset your PIN";
   const prompt = confirming ? "Confirm your PIN" : "Choose a 4-digit PIN";
+  const pinLabel = confirming ? "Confirm PIN" : "New PIN";
 
   const onPinChange = (next: string) => {
     setPin(next);
@@ -49,11 +51,13 @@ export default function CreatePinScreen({ mode, onDone, onBack }: Props) {
       <ScreenHeader title={title} onBack={confirming ? () => { setFirstPin(null); setPin(""); } : onBack} />
 
       <View style={styles.body}>
-        <IconWell backgroundColor={colors.washPurple} size={56} radius={20}>
-          <Icon name="lock-closed" size={26} color={colors.text} />
-        </IconWell>
+        <View {...DECORATIVE_A11Y}>
+          <IconWell backgroundColor={colors.washPurple} size={56} radius={20}>
+            <Icon name="lock-closed" size={26} color={colors.text} />
+          </IconWell>
+        </View>
 
-        <AppText variant="labelLG" align="center">
+        <AppText variant="labelLG" align="center" heading={2}>
           {prompt}
         </AppText>
 
@@ -63,10 +67,17 @@ export default function CreatePinScreen({ mode, onDone, onBack }: Props) {
           onChangeText={onPinChange}
           error={error}
           autoFocus
+          accessibilityLabel={pinLabel}
         />
 
         {error ? (
-          <AppText variant="bodySM" color={colors.danger} align="center">
+          <AppText
+            variant="bodySM"
+            color={colors.danger}
+            align="center"
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+          >
             PINs didn't match. Let's try again.
           </AppText>
         ) : (

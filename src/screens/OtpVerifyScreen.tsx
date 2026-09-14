@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { AppText, PinInput, Screen, ScreenHeader } from "../components/ui";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { fonts, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 const CODE_LENGTH = 4;
@@ -11,11 +12,13 @@ type Props = {
   onBack: () => void;
 };
 
-export default function OtpVerifyScreen({ onVerified, onBack }: Props) {
+export default function OtpVerifyScreen({ phone, onVerified, onBack }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
+
+  const phoneDisplay = phone ? `+233 ${phone}` : "your phone";
 
   useEffect(() => {
     if (code.length !== CODE_LENGTH) return;
@@ -36,8 +39,12 @@ export default function OtpVerifyScreen({ onVerified, onBack }: Props) {
       <ScreenHeader title="Verify your number" onBack={onBack} />
 
       <View style={styles.body}>
-        <AppText variant="bodyMD" align="center">
-          Enter the {CODE_LENGTH}-digit code sent to your phone
+        <AppText
+          variant="bodyMD"
+          align="center"
+          accessibilityLabel={`Enter the ${CODE_LENGTH}-digit code sent to ${phoneDisplay}`}
+        >
+          Enter the {CODE_LENGTH}-digit code sent to {phoneDisplay}
         </AppText>
 
         <View style={styles.dotsWrap}>
@@ -48,8 +55,11 @@ export default function OtpVerifyScreen({ onVerified, onBack }: Props) {
             editable={!verifying}
             autoFocus
             textContentType="oneTimeCode"
+            accessibilityLabel="Verification code"
           />
-          {verifying ? <ActivityIndicator color={colors.text} style={styles.spinner} /> : null}
+          {verifying ? (
+            <ActivityIndicator color={colors.text} style={styles.spinner} {...DECORATIVE_A11Y} />
+          ) : null}
         </View>
 
         <Pressable
@@ -58,13 +68,14 @@ export default function OtpVerifyScreen({ onVerified, onBack }: Props) {
           accessibilityRole="button"
           role="button"
           accessibilityLabel="Resend code"
+          accessibilityState={{ disabled: verifying }}
           hitSlop={8}
           style={styles.resend}
         >
-          <AppText variant="bodySM" color={colors.textSecondary}>
+          <AppText variant="bodySM" color={colors.textSecondary} importantForAccessibility="no">
             Didn't get it?{" "}
           </AppText>
-          <AppText variant="bodySM" color={colors.text} style={styles.resendStrong}>
+          <AppText variant="bodySM" color={colors.text} style={styles.resendStrong} importantForAccessibility="no">
             Resend code
           </AppText>
         </Pressable>
@@ -90,7 +101,7 @@ function createStyles(colors: Palette) {
     resend: {
       flexDirection: "row" as const,
       justifyContent: "center" as const,
-      minHeight: 40,
+      minHeight: 44,
       alignItems: "center" as const,
     },
     resendStrong: {

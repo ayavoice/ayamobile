@@ -28,7 +28,12 @@ export default function PinDots({ length, filled, error = false }: PinDotsProps)
   const cellRadius = Math.round(cellWidth * 0.25);
 
   return (
-    <View style={[styles.row, { gap }]} accessibilityElementsHidden>
+    <View
+      style={[styles.row, { gap }]}
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
       {Array.from({ length }).map((_, i) => {
         const isFilled = i < filled;
         return (

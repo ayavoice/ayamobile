@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import MobilePreviewFrame from "./src/components/MobilePreviewFrame";
 import TabBar, { TAB_ROOT_SCREENS } from "./src/components/TabBar";
@@ -24,7 +25,6 @@ import {
   ListeningScreen,
   SendMoneyScreen,
   TransferReceiptScreen,
-  UnderstandingScreen,
   ConfirmationScreen,
   BiometricScreen,
   ProcessingScreen,
@@ -33,6 +33,7 @@ import {
   BalanceScreen,
   HistoryScreen,
   ServicesScreen,
+  MerchantReceiveScreen,
   ProfileScreen,
   GameScreen,
   LeaderboardScreen,
@@ -135,7 +136,7 @@ function AppNavigator() {
     case "listening":
       content = (
         <ListeningScreen
-          onNext={() => go(activeFlow === "transfer" ? "send-money" : "understanding")}
+          onNext={() => go(activeFlow === "transfer" ? "send-money" : "confirmation")}
           onBack={back}
         />
       );
@@ -155,13 +156,6 @@ function AppNavigator() {
       );
       break;
     case "understanding":
-      content = (
-        <UnderstandingScreen
-          onConfirm={() => go("confirmation")}
-          onBack={back}
-        />
-      );
-      break;
     case "confirmation":
       content = (
         <ConfirmationScreen onConfirm={() => go("biometric")} onBack={back} />
@@ -202,7 +196,10 @@ function AppNavigator() {
       content = <HistoryScreen onBack={back} />;
       break;
     case "services":
-      content = <ServicesScreen onBack={back} onStartFlow={startFlow} />;
+      content = <ServicesScreen onBack={back} onStartFlow={startFlow} onNav={go} />;
+      break;
+    case "merchant-receive":
+      content = <MerchantReceiveScreen onBack={back} />;
       break;
     case "profile":
       content = <ProfileScreen onBack={back} onNav={go} onLogout={logout} />;
@@ -248,8 +245,18 @@ function BootScreen() {
   return (
     <>
       <MobilePreviewFrame>
-        <View style={[styles.boot, { backgroundColor: colors.background }]}>
-          <ActivityIndicator size="large" color={colors.purple} />
+        <View
+          style={[styles.boot, { backgroundColor: colors.background }]}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel="Loading Aya"
+        >
+          <ActivityIndicator
+            size="large"
+            color={colors.purple}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
         </View>
       </MobilePreviewFrame>
       {Platform.OS !== "web" ? <StatusBar style={isDark ? "light" : "dark"} /> : null}
@@ -261,17 +268,19 @@ export default function App() {
   const [fontsLoaded] = useAppFonts();
 
   return (
-    <SafeAreaProvider style={styles.app}>
-      <ThemeProvider>
-        {fontsLoaded ? (
-          <AppPrefsProvider>
-            <AppNavigator />
-          </AppPrefsProvider>
-        ) : (
-          <BootScreen />
-        )}
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.app}>
+      <SafeAreaProvider style={styles.app}>
+        <ThemeProvider>
+          {fontsLoaded ? (
+            <AppPrefsProvider>
+              <AppNavigator />
+            </AppPrefsProvider>
+          ) : (
+            <BootScreen />
+          )}
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

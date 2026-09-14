@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import type { ComponentProps } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { AppText, Card, Icon, IconWell, Screen, ScreenHeader, Toggle } from "../components/ui";
 import { useAppPrefs } from "../context/AppPrefs";
 import type { AccessibilityPrefs } from "../context/AppPrefs";
-import { colors, radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
+import { DECORATIVE_A11Y } from "../lib/currency";
+import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Props = { onBack: () => void };
 type ToggleKey = keyof Pick<
@@ -22,6 +23,8 @@ const TOGGLE_OPTS: { key: ToggleKey; icon: IonName; label: string; desc: string 
   { key: "screenReader", icon: "eye-outline", label: "Screen reader", desc: "TalkBack / VoiceOver support" },
 ];
 
+const TEXT_SIZE_LABELS = ["Small", "Medium", "Large"] as const;
+
 export default function AccessibilitySettingsScreen({ onBack }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createA11yStyles);
@@ -36,7 +39,7 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
           Light and dark appearance follow your phone settings. Logos switch with the mode.
         </AppText>
         <Card>
-          <AppText variant="labelMD" style={styles.cardTitle}>
+          <AppText variant="labelMD" style={styles.cardTitle} heading={2}>
             Language
           </AppText>
           <View style={styles.row}>
@@ -58,7 +61,7 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
                   accessibilityState={{ selected: on }}
                   accessibilityLabel={lang.label}
                 >
-                  <AppText variant="labelXS" color={on ? colors.textOnYellow : colors.text}>
+                  <AppText variant="labelXS" color={on ? colors.textOnYellow : colors.text} importantForAccessibility="no">
                     {lang.label}
                   </AppText>
                 </Pressable>
@@ -68,7 +71,7 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
         </Card>
 
         <Card>
-          <AppText variant="labelMD" style={styles.cardTitle}>
+          <AppText variant="labelMD" style={styles.cardTitle} heading={2}>
             Text size
           </AppText>
           <View style={styles.row}>
@@ -80,8 +83,13 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
                   key={size}
                   onPress={() => setAccessibility({ textSize: level, largeText: level > 1 })}
                   style={[styles.choice, on ? styles.choiceOn : styles.choiceOff]}
+                  accessibilityRole="button"
+                  role="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`Text size ${TEXT_SIZE_LABELS[i]}, level ${level}`}
+                  accessibilityHint="Makes text larger or smaller"
                 >
-                  <AppText style={{ fontSize: size, fontWeight: "700", color: on ? colors.textOnYellow : colors.text }}>
+                  <AppText style={{ fontSize: size, fontWeight: "700", color: on ? colors.textOnYellow : colors.text }} importantForAccessibility="no">
                     A
                   </AppText>
                 </Pressable>
@@ -91,7 +99,7 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
         </Card>
 
         <Card>
-          <AppText variant="labelMD" style={styles.cardTitle}>
+          <AppText variant="labelMD" style={styles.cardTitle} heading={2}>
             Speech speed
           </AppText>
           <View style={styles.row}>
@@ -103,8 +111,13 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
                   key={label}
                   onPress={() => setAccessibility({ speechSpeed: level })}
                   style={[styles.choice, on ? styles.choiceOn : styles.choiceOff]}
+                  accessibilityRole="button"
+                  role="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`Speech speed: ${label}`}
+                  accessibilityHint="Changes how fast Aya speaks"
                 >
-                  <AppText variant="labelXS" color={on ? colors.textOnYellow : colors.text}>
+                  <AppText variant="labelXS" color={on ? colors.textOnYellow : colors.text} importantForAccessibility="no">
                     {label}
                   </AppText>
                 </Pressable>
@@ -113,37 +126,43 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
           </View>
         </Card>
 
-        {TOGGLE_OPTS.map((opt) => (
-          <Pressable
-            key={opt.key}
-            onPress={() =>
-              setAccessibility({ [opt.key]: !accessibility[opt.key] })
-            }
-            accessibilityRole="button"
-            role="button"
-            accessibilityState={{ selected: accessibility[opt.key] }}
-            accessibilityLabel={`${opt.label}: ${accessibility[opt.key] ? "on" : "off"}`}
-          >
-            <Card>
-              <View style={styles.toggleRow}>
-                <IconWell backgroundColor={colors.surfaceGhost} size={44} radius={14}>
-                  <Icon name={opt.icon} size={22} color={colors.text} />
-                </IconWell>
-                <View style={styles.flex}>
-                  <AppText variant="labelMD">{opt.label}</AppText>
-                  <AppText variant="caption">{opt.desc}</AppText>
+        {TOGGLE_OPTS.map((opt) => {
+          const checked = accessibility[opt.key];
+          return (
+            <Pressable
+              key={opt.key}
+              onPress={() =>
+                setAccessibility({ [opt.key]: !accessibility[opt.key] })
+              }
+              accessibilityRole="switch"
+              role="switch"
+              accessibilityState={{ checked }}
+              accessibilityLabel={opt.label}
+              accessibilityHint={opt.desc}
+            >
+              <Card>
+                <View style={styles.toggleRow}>
+                  <View {...DECORATIVE_A11Y}>
+                    <IconWell backgroundColor={colors.surfaceGhost} size={44} radius={14}>
+                      <Icon name={opt.icon} size={22} color={colors.text} />
+                    </IconWell>
+                  </View>
+                  <View style={styles.flex} importantForAccessibility="no">
+                    <AppText variant="labelMD" importantForAccessibility="no">{opt.label}</AppText>
+                    <AppText variant="caption" importantForAccessibility="no">{opt.desc}</AppText>
+                  </View>
+                  <View pointerEvents="none" {...DECORATIVE_A11Y}>
+                    <Toggle
+                      value={checked}
+                      onValueChange={() => {}}
+                      accessibilityLabel={opt.label}
+                    />
+                  </View>
                 </View>
-                <View pointerEvents="none">
-                  <Toggle
-                    value={accessibility[opt.key]}
-                    onValueChange={() => {}}
-                    accessibilityLabel={opt.label}
-                  />
-                </View>
-              </View>
-            </Card>
-          </Pressable>
-        ))}
+              </Card>
+            </Pressable>
+          );
+        })}
       </View>
     </Screen>
   );
@@ -159,15 +178,15 @@ function createA11yStyles(colors: Palette) {
     marginBottom: spacing.md,
   },
   row: {
-    flexDirection: "row",
+    flexDirection: "row" as const,
     gap: spacing.sm,
   },
   choice: {
     flex: 1,
     height: 48,
     borderRadius: radii["2xl"],
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   choiceOn: {
     backgroundColor: colors.purple,
@@ -176,8 +195,8 @@ function createA11yStyles(colors: Palette) {
     backgroundColor: colors.surfaceCard,
   },
   toggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     gap: 14,
   },
   flex: {

@@ -3,6 +3,7 @@ import { Pressable, View } from "react-native";
 import { AppText, Button, Icon, IconWell, Screen, ScreenFooter } from "../components/ui";
 import { useAppPrefs } from "../context/AppPrefs";
 import type { AppLanguage } from "../content/flows";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 const LANGUAGES: {
@@ -33,42 +34,53 @@ export default function LanguageScreen({ onNext }: Props) {
         </AppText>
       </View>
 
-      <View style={styles.list}>
+      <View
+        style={styles.list}
+        accessibilityRole="list"
+        role="list"
+        accessibilityLabel={`Languages, ${LANGUAGES.length} items`}
+      >
         {LANGUAGES.map((lang) => {
           const active = selected === lang.code;
           return (
-            <Pressable
-              key={lang.code}
-              onPress={() => setSelected(lang.code)}
-              accessibilityRole="button"
-              role="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={`Select ${lang.name}`}
-              style={[styles.row, active && styles.rowActive]}
-            >
-              <IconWell
-                backgroundColor={active ? colors.surface : colors.washPurple}
-                size={52}
-                radius={18}
+            <View key={lang.code} role="listitem">
+              <Pressable
+                onPress={() => setSelected(lang.code)}
+                accessibilityRole="button"
+                role="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`${lang.name}, sample: ${lang.sample}`}
+                style={[styles.row, active && styles.rowActive]}
               >
-                <AppText variant="labelMD" color={colors.text}>
-                  {lang.badge}
-                </AppText>
-              </IconWell>
+                <View {...DECORATIVE_A11Y}>
+                  <IconWell
+                    backgroundColor={active ? colors.surface : colors.washPurple}
+                    size={52}
+                    radius={18}
+                  >
+                    <AppText variant="labelMD" color={colors.text}>
+                      {lang.badge}
+                    </AppText>
+                  </IconWell>
+                </View>
 
-              <View style={styles.meta}>
-                <AppText variant="heading" numberOfLines={1}>
-                  {lang.name}
-                </AppText>
-                <AppText variant="bodySM" style={styles.sample} numberOfLines={1}>
-                  {lang.sample}
-                </AppText>
-              </View>
+                <View style={styles.meta} importantForAccessibility="no">
+                  <AppText variant="heading" numberOfLines={1} importantForAccessibility="no">
+                    {lang.name}
+                  </AppText>
+                  <AppText variant="bodySM" style={styles.sample} numberOfLines={1} importantForAccessibility="no">
+                    {lang.sample}
+                  </AppText>
+                </View>
 
-              <View style={[styles.check, active ? styles.checkOn : styles.checkOff]}>
-                {active ? <Icon name="checkmark" size={16} color={colors.textOnYellow} /> : null}
-              </View>
-            </Pressable>
+                <View
+                  style={[styles.check, active ? styles.checkOn : styles.checkOff]}
+                  {...DECORATIVE_A11Y}
+                >
+                  {active ? <Icon name="checkmark" size={16} color={colors.textOnYellow} /> : null}
+                </View>
+              </Pressable>
+            </View>
           );
         })}
       </View>

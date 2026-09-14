@@ -14,10 +14,19 @@ export default function NavBack({ onBack }: NavBackProps) {
       accessibilityRole="button"
       role="button"
       accessibilityLabel="Go back"
+      accessibilityHint="Returns to the previous screen"
       hitSlop={8}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <Svg width={11} height={19} viewBox="0 0 11 19" fill="none">
+      <Svg
+        width={11}
+        height={19}
+        viewBox="0 0 11 19"
+        fill="none"
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
         <Path
           d="M10 1L2 9.5L10 18"
           stroke={colors.text}

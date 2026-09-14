@@ -22,6 +22,7 @@ export type ScreenId =
   | "balance"
   | "history"
   | "services"
+  | "merchant-receive"
   | "profile"
   | "game"
   | "leaderboard"

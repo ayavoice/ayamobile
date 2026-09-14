@@ -17,8 +17,8 @@ type ThemeValue = {
   logo: ImageSourcePropType;
 };
 
-const lightLogo = require("../../assets/brand/yellow.png");
-const darkLogo = require("../../assets/brand/yellow1.png");
+const lightLogo = require("../../assets/brand/logo.png");
+const darkLogo = require("../../assets/brand/logo1.png");
 
 const ThemeContext = createContext<ThemeValue>({
   scheme: "light",

@@ -35,7 +35,12 @@ export default function OnboardingScreen({ onNext }: Props) {
     <Screen scroll>
       <View style={styles.header}>
         {slide < 2 && (
-          <Button onPress={onNext} variant="ghost" style={styles.skipButton}>
+          <Button
+            onPress={onNext}
+            variant="ghost"
+            style={styles.skipButton}
+            accessibilityLabel="Skip onboarding"
+          >
             <AppText variant="caption">Skip</AppText>
           </Button>
         )}
@@ -57,10 +62,14 @@ export default function OnboardingScreen({ onNext }: Props) {
           <Pressable
             key={i}
             onPress={() => setSlide(i)}
-            accessibilityLabel={`Slide ${i + 1}`}
-            hitSlop={8}
-            style={[styles.dot, i === slide ? styles.dotActive : styles.dotIdle]}
-          />
+            accessibilityRole="button"
+            role="button"
+            accessibilityState={{ selected: i === slide }}
+            accessibilityLabel={`Go to slide ${i + 1} of ${SLIDES.length}`}
+            style={styles.dotHit}
+          >
+            <View style={[styles.dot, i === slide ? styles.dotActive : styles.dotIdle]} />
+          </Pressable>
         ))}
       </View>
 
@@ -109,9 +118,15 @@ function createOnboardingStyles(colors: Palette) {
     dots: {
       flexDirection: "row" as const,
       justifyContent: "center" as const,
-      gap: spacing.sm,
+      alignItems: "center" as const,
       paddingBottom: spacing.sm,
       flexShrink: 0,
+    },
+    dotHit: {
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
     },
     dot: {
       height: 8,

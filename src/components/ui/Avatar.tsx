@@ -20,7 +20,13 @@ export default function Avatar({ source, size }: Props) {
         },
       ]}
     >
-      <Image source={source} style={{ width: size, height: size }} />
+      <Image
+        source={source}
+        style={{ width: size, height: size }}
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
     </View>
   );
 }

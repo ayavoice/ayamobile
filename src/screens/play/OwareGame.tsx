@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { AppText, Card, Icon } from "../../components/ui";
-import { formatCurrency } from "../../lib/currency";
+import { DECORATIVE_A11Y, formatCurrency, formatCurrencySpoken } from "../../lib/currency";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../../theme";
 import {
   OWARE_ROUNDS,
@@ -16,6 +16,17 @@ import { ChunkyButton, StarRow } from "./shared";
 type LogEntry = { title: string; delta: number; tier: OwareChoice["tier"] };
 
 const ACCENT_KEY = "purple" as const;
+
+function deltaSpoken(delta: number): string {
+  if (delta === 0) return "no change";
+  const spoken = formatCurrencySpoken(delta);
+  return delta > 0 ? `plus ${spoken}` : spoken;
+}
+
+/** Speak money tokens inside a sentence without dropping the surrounding words. */
+function speakChoiceLabel(label: string): string {
+  return label.replace(/GH₵\s*([\d,]+(?:\.\d+)?)/gi, (_, amount: string) => formatCurrencySpoken(amount));
+}
 
 export default function OwareGame({
   bestScore,
@@ -70,57 +81,111 @@ export default function OwareGame({
     const isNewBest = bestCount > 0 && bestCount > bestScore;
     return (
       <Card style={styles.resultCard}>
-        <AppText variant="overline" color={colors.text}>
+        <AppText variant="overline" color={colors.text} heading={2}>
           Ama's Day
         </AppText>
         <StarRow count={stars} size={40} filledColor={colors.warning} emptyColor={colors.borderMuted} />
         {isNewBest ? (
-          <View style={styles.newBestChip}>
-            <Icon name="sparkles" size={14} color={colors.text} />
-            <AppText variant="labelXS" color={colors.text}>
+          <View
+            style={styles.newBestChip}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel="New best"
+          >
+            <View {...DECORATIVE_A11Y}>
+              <Icon name="sparkles" size={14} color={colors.text} />
+            </View>
+            <AppText variant="labelXS" color={colors.text} importantForAccessibility="no">
               New best!
             </AppText>
           </View>
         ) : null}
 
-        <View style={styles.ledger}>
-          <View style={styles.ledgerRow}>
-            <AppText variant="bodySM">Starting money</AppText>
-            <AppText variant="labelMD">{formatCurrency(OWARE_START_MONEY)}</AppText>
+        <View
+          style={styles.ledger}
+          role="list"
+          accessibilityRole="list"
+          accessibilityLabel={`Day summary, ${stars} stars, plus ${xp} XP earned`}
+        >
+          <View
+            role="listitem"
+            accessible
+            accessibilityLabel={`Starting money, ${formatCurrencySpoken(OWARE_START_MONEY)}`}
+            style={styles.ledgerRow}
+          >
+            <AppText variant="bodySM" importantForAccessibility="no">
+              Starting money
+            </AppText>
+            <AppText variant="labelMD" importantForAccessibility="no">
+              {formatCurrency(OWARE_START_MONEY)}
+            </AppText>
           </View>
           {log.map((entry, i) => (
-            <View key={i} style={styles.ledgerRow}>
-              <AppText variant="bodySM" numberOfLines={1} style={styles.ledgerLabel}>
+            <View
+              key={i}
+              role="listitem"
+              accessible
+              accessibilityLabel={`${entry.title}, ${deltaSpoken(entry.delta)}`}
+              style={styles.ledgerRow}
+            >
+              <AppText variant="bodySM" numberOfLines={1} style={styles.ledgerLabel} importantForAccessibility="no">
                 {entry.title}
               </AppText>
-              <AppText variant="labelMD" color={entry.delta < 0 ? colors.danger : entry.delta > 0 ? colors.successDark : colors.textSubtle}>
+              <AppText
+                variant="labelMD"
+                color={entry.delta < 0 ? colors.danger : entry.delta > 0 ? colors.successDark : colors.textSubtle}
+                importantForAccessibility="no"
+              >
                 {entry.delta === 0 ? "±0" : `${entry.delta > 0 ? "+" : ""}${formatCurrency(entry.delta)}`}
               </AppText>
             </View>
           ))}
-          <View style={[styles.ledgerRow, styles.ledgerDivider]}>
-            <AppText variant="labelMD">Money remaining</AppText>
-            <AppText variant="labelLG" color={colors.text}>
+          <View
+            role="listitem"
+            accessible
+            accessibilityLabel={`Money remaining, ${formatCurrencySpoken(wallet)}`}
+            style={[styles.ledgerRow, styles.ledgerDivider]}
+          >
+            <AppText variant="labelMD" importantForAccessibility="no">
+              Money remaining
+            </AppText>
+            <AppText variant="labelLG" color={colors.text} importantForAccessibility="no">
               {formatCurrency(wallet)}
             </AppText>
           </View>
-          <View style={styles.ledgerRow}>
-            <AppText variant="labelMD">Financial safety</AppText>
-            <AppText variant="labelLG" color={colors.successDark}>
+          <View
+            role="listitem"
+            accessible
+            accessibilityLabel={`Financial safety, ${safety} percent`}
+            style={styles.ledgerRow}
+          >
+            <AppText variant="labelMD" importantForAccessibility="no">
+              Financial safety
+            </AppText>
+            <AppText variant="labelLG" color={colors.successDark} importantForAccessibility="no">
               {safety}%
             </AppText>
           </View>
         </View>
 
-        <AppText variant="caption" color={colors.textSubtle}>
+        <AppText variant="caption" color={colors.textSubtle} accessible accessibilityLabel={`Plus ${xp} XP earned`}>
           +{xp} XP earned
         </AppText>
 
         <View style={styles.fullWidth}>
           <ChunkyButton label="Play again" icon="refresh" color={accent} onPress={reset} />
         </View>
-        <Pressable style={styles.secondaryBtn} onPress={onExit} accessibilityRole="button" role="button">
-          <AppText variant="labelMD">Back to games</AppText>
+        <Pressable
+          style={styles.secondaryBtn}
+          onPress={onExit}
+          accessibilityRole="button"
+          role="button"
+          accessibilityLabel="Back to games"
+          accessibilityHint="Returns to AYA Learn"
+        >
+          <AppText variant="labelMD" importantForAccessibility="no">
+            Back to games
+          </AppText>
         </Pressable>
       </Card>
     );
@@ -131,44 +196,92 @@ export default function OwareGame({
   return (
     <Card style={styles.card}>
       <View style={styles.topRow}>
-        <View style={styles.progressTrack}>
+        <View
+          style={styles.progressTrack}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={`Round progress, ${roundIndex} of ${OWARE_ROUNDS.length}`}
+          accessibilityValue={{ min: 0, max: OWARE_ROUNDS.length, now: roundIndex }}
+        >
           <View
             style={[
               styles.progressFill,
               { width: `${(roundIndex / OWARE_ROUNDS.length) * 100}%`, backgroundColor: accent },
             ]}
+            importantForAccessibility="no"
           />
         </View>
-        <Pressable onPress={onExit} accessibilityRole="button" role="button" accessibilityLabel="Exit game" hitSlop={8}>
-          <Icon name="close" size={20} color={colors.textSubtle} />
+        <Pressable
+          onPress={onExit}
+          accessibilityRole="button"
+          role="button"
+          accessibilityLabel="Exit game"
+          accessibilityHint="Returns to AYA Learn"
+          style={styles.exitBtn}
+        >
+          <View {...DECORATIVE_A11Y}>
+            <Icon name="close" size={20} color={colors.textSubtle} />
+          </View>
         </Pressable>
       </View>
 
       <View style={styles.walletRow}>
-        <View style={styles.walletChip}>
-          <Icon name="wallet" size={14} color={colors.text} />
-          <AppText variant="labelXS">{formatCurrency(wallet)}</AppText>
+        <View
+          style={styles.walletChip}
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={`Wallet, ${formatCurrencySpoken(wallet)}`}
+        >
+          <View {...DECORATIVE_A11Y}>
+            <Icon name="wallet" size={14} color={colors.text} />
+          </View>
+          <AppText variant="labelXS" importantForAccessibility="no">
+            {formatCurrency(wallet)}
+          </AppText>
         </View>
-        <View style={styles.walletChip}>
-          <Icon name="shield-checkmark" size={14} color={colors.successMid} />
-          <AppText variant="labelXS">{safety}% safe</AppText>
+        <View
+          style={styles.walletChip}
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={`Safety, ${safety} percent`}
+        >
+          <View {...DECORATIVE_A11Y}>
+            <Icon name="shield-checkmark" size={14} color={colors.successMid} />
+          </View>
+          <AppText variant="labelXS" importantForAccessibility="no">
+            {safety}% safe
+          </AppText>
         </View>
-        <AppText variant="caption" color={colors.textSubtle}>
+        <AppText
+          variant="caption"
+          color={colors.textSubtle}
+          accessible
+          accessibilityLabel={`Round ${roundIndex + 1} of ${OWARE_ROUNDS.length}`}
+        >
           {roundIndex + 1} of {OWARE_ROUNDS.length}
         </AppText>
       </View>
 
-      <View style={styles.situationRow}>
-        <View style={[styles.roundIcon, { backgroundColor: colors.washPurple }]}>
+      <View
+        style={styles.situationRow}
+        accessible
+        accessibilityRole="summary"
+        accessibilityLabel={`${round.title}. ${round.situation}`}
+      >
+        <View style={[styles.roundIcon, { backgroundColor: colors.washPurple }]} {...DECORATIVE_A11Y}>
           <Icon name={round.icon} size={20} color={colors.text} />
         </View>
-        <View style={styles.flex}>
-          <AppText variant="labelLG">{round.title}</AppText>
-          <AppText variant="bodySM">{round.situation}</AppText>
+        <View style={styles.flex} importantForAccessibility="no">
+          <AppText variant="labelLG" importantForAccessibility="no">
+            {round.title}
+          </AppText>
+          <AppText variant="bodySM" importantForAccessibility="no">
+            {round.situation}
+          </AppText>
         </View>
       </View>
 
-      <View style={styles.choices}>
+      <View style={styles.choices} role="list" accessibilityRole="list" accessibilityLabel="Choices">
         {round.choices.map((c) => {
           const isSelected = choice?.id === c.id;
           const revealTier = answered && isSelected;
@@ -179,7 +292,8 @@ export default function OwareGame({
               onPress={() => pick(c)}
               accessibilityRole="button"
               role="button"
-              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={speakChoiceLabel(c.label)}
+              accessibilityState={{ selected: isSelected, disabled: answered }}
               style={[
                 styles.choice,
                 revealTier && c.tier === "best" && styles.choiceGood,
@@ -187,15 +301,17 @@ export default function OwareGame({
                 revealTier && c.tier === "okay" && styles.choiceMid,
               ]}
             >
-              <AppText variant="labelMD" style={styles.choiceLabel}>
+              <AppText variant="labelMD" style={styles.choiceLabel} importantForAccessibility="no">
                 {c.label}
               </AppText>
               {revealTier ? (
-                <Icon
-                  name={c.tier === "best" ? "checkmark-circle" : c.tier === "trap" ? "close-circle" : "alert-circle"}
-                  size={20}
-                  color={c.tier === "best" ? colors.successDark : c.tier === "trap" ? colors.danger : colors.warning}
-                />
+                <View {...DECORATIVE_A11Y}>
+                  <Icon
+                    name={c.tier === "best" ? "checkmark-circle" : c.tier === "trap" ? "close-circle" : "alert-circle"}
+                    size={20}
+                    color={c.tier === "best" ? colors.successDark : c.tier === "trap" ? colors.danger : colors.warning}
+                  />
+                </View>
               ) : null}
             </Pressable>
           );
@@ -204,7 +320,7 @@ export default function OwareGame({
 
       {answered && choice ? (
         <>
-          <AppText variant="bodySM" style={styles.explanation}>
+          <AppText variant="bodySM" style={styles.explanation} accessibilityLiveRegion="polite">
             {choice.feedback}
           </AppText>
           <ChunkyButton
@@ -237,6 +353,12 @@ function createStyles(colors: Palette) {
       overflow: "hidden" as const,
     },
     progressFill: { height: "100%" as const, borderRadius: radii.full },
+    exitBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
     walletRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: spacing.sm },
     walletChip: {
       flexDirection: "row" as const,
@@ -266,13 +388,19 @@ function createStyles(colors: Palette) {
       borderRadius: radii.lg,
       paddingVertical: 12,
       paddingHorizontal: spacing.lg,
+      minHeight: 44,
     },
     choiceLabel: { flex: 1 },
     choiceGood: { backgroundColor: colors.successSurface },
     choiceBad: { backgroundColor: colors.dangerSurface },
     choiceMid: { backgroundColor: colors.surfaceWarning },
     explanation: { color: colors.textSecondary },
-    secondaryBtn: { alignItems: "center" as const, paddingVertical: 10 },
+    secondaryBtn: {
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      paddingVertical: 10,
+      minHeight: 44,
+    },
     resultCard: { alignItems: "center" as const, gap: spacing.sm },
     newBestChip: {
       flexDirection: "row" as const,
@@ -284,7 +412,13 @@ function createStyles(colors: Palette) {
       paddingHorizontal: 12,
     },
     ledger: { alignSelf: "stretch" as const, gap: 6, marginVertical: spacing.xs },
-    ledgerRow: { flexDirection: "row" as const, alignItems: "center" as const, justifyContent: "space-between" as const, gap: spacing.md },
+    ledgerRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      gap: spacing.md,
+      minHeight: 44,
+    },
     ledgerLabel: { flex: 1 },
     ledgerDivider: {
       borderTopWidth: 1,

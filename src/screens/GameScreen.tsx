@@ -1,69 +1,65 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { Screen, ScreenHeader } from "../components/ui";
+import {
+  INITIAL_PROGRESS,
+  LOCAL_GAMES,
+  type LearnPathId,
+  type LocalGameId,
+} from "../content/play";
 import { spacing, useColors, usePaletteStyles, type Palette } from "../theme";
-import { INITIAL_PROGRESS, levelForXp } from "../content/play";
 import PlayHub from "./play/PlayHub";
 import OwareGame from "./play/OwareGame";
-import LeaderboardScreen from "./play/LeaderboardScreen";
+import ScamWordsScreen from "./play/ScamWordsScreen";
 
 type Props = { onBack: () => void };
-type PlayView = "hub" | "play" | "leaderboard";
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+type PlayView = "hub" | "scam-words" | LocalGameId;
 
 export default function GameScreen({ onBack }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
 
   const [view, setView] = useState<PlayView>("hub");
-  const [xp, setXp] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [lastPlayedDate, setLastPlayedDate] = useState<string | null>(null);
   const [progress, setProgress] = useState(INITIAL_PROGRESS);
 
-  const level = levelForXp(xp);
-
-  function recordSession(xpEarned: number, score: number, total: number) {
-    setXp((x) => x + xpEarned);
+  function recordSession(_xpEarned: number, score: number, total: number) {
     setProgress((p) => ({ best: Math.max(p.best, score), total, plays: p.plays + 1 }));
-    const today = todayKey();
-    setLastPlayedDate((prevDate) => {
-      if (prevDate === today) return prevDate;
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      setStreak((s) => (prevDate === yesterday ? s + 1 : 1));
-      return today;
-    });
   }
 
-  const title = view === "play" ? "Ama's Market Day" : view === "leaderboard" ? "Ghana League" : "AYA Learn";
+  function openGame(gameId: LocalGameId) {
+    const game = LOCAL_GAMES.find((g) => g.id === gameId);
+    if (game?.playable) setView(gameId);
+  }
+
+  function openPath(pathId: LearnPathId) {
+    if (pathId === "scam-words") setView("scam-words");
+    if (pathId === "practice") openGame("oware");
+  }
+
+  const activeGame = view === "hub" || view === "scam-words" ? null : LOCAL_GAMES.find((g) => g.id === view);
+  const title =
+    view === "scam-words"
+      ? "Scam words"
+      : activeGame?.title ?? "Think Genius";
   const headerBack = view === "hub" ? onBack : () => setView("hub");
 
   return (
-    <Screen background={colors.white} scroll safeBottom={false}>
+    <Screen background={colors.background} scroll safeBottom={false}>
       <ScreenHeader title={title} onBack={headerBack} />
       <View style={styles.body}>
-        {view === "play" ? (
+        {view === "oware" ? (
           <OwareGame
             bestScore={progress.best}
             onExit={() => setView("hub")}
             onFinish={(xpEarned, score, total) => recordSession(xpEarned, score, total)}
           />
-        ) : view === "leaderboard" ? (
-          <LeaderboardScreen xp={xp} />
-        ) : (
-          <PlayHub
-            xp={xp}
-            streak={streak}
-            levelName={level.name}
-            levelIndex={level.index}
-            levelProgressPct={level.progressPct}
-            progress={progress}
-            onPlay={() => setView("play")}
-            onOpenLeaderboard={() => setView("leaderboard")}
+        ) : view === "scam-words" ? (
+          <ScamWordsScreen
+            onExit={() => setView("hub")}
+            onFinish={(score, total) => recordSession(0, score, total)}
           />
+        ) : (
+          <PlayHub progress={progress} onPlay={openGame} onOpenPath={openPath} />
         )}
       </View>
     </Screen>

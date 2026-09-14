@@ -5,8 +5,9 @@ import { AppText, Avatar, Card, Icon, IconWell, Screen, ScreenHeader, Toggle } f
 import { brandImages } from "../content/brand";
 import { useAppPrefs } from "../context/AppPrefs";
 import { languageDisplayName } from "../content/flows";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import type { ScreenId } from "../navigation/types";
-import { colors, spacing, useColors, type Palette } from "../theme";
+import { spacing, useColors, type Palette } from "../theme";
 
 type Props = { onBack: () => void; onNav: (screen: ScreenId) => void; onLogout: () => void };
 type IonName = ComponentProps<typeof Ionicons>["name"];
@@ -88,16 +89,20 @@ export default function ProfileScreen({ onBack, onNav, onLogout }: Props) {
       <ScreenHeader title="Profile" onBack={onBack} />
 
       <View style={styles.body}>
-        <Card style={styles.profileCard}>
+        <Card
+          style={styles.profileCard}
+          accessible
+          accessibilityLabel={`Pratik, Ac no. 8050530XXX, Speaking ${languageDisplayName(language)}`}
+        >
           <Avatar source={brandImages.pratik} size={64} />
-          <View style={styles.flex}>
-            <AppText variant="labelLG" numberOfLines={1}>
+          <View style={styles.flex} importantForAccessibility="no">
+            <AppText variant="labelLG" numberOfLines={1} importantForAccessibility="no">
               Pratik
             </AppText>
-            <AppText variant="bodySM" numberOfLines={1}>
+            <AppText variant="bodySM" numberOfLines={1} importantForAccessibility="no">
               Ac no. 8050530XXX
             </AppText>
-            <AppText variant="caption" style={styles.langTag}>
+            <AppText variant="caption" style={styles.langTag} importantForAccessibility="no">
               Speaking {languageDisplayName(language)}
             </AppText>
           </View>
@@ -105,20 +110,23 @@ export default function ProfileScreen({ onBack, onNav, onLogout }: Props) {
 
         <Pressable
           onPress={toggleAccessibilityMode}
-          accessibilityRole="button"
-          role="button"
-          accessibilityState={{ selected: accessibilityModeOn }}
-          accessibilityLabel={`Accessibility mode: ${accessibilityModeOn ? "on" : "off"}`}
+          accessibilityRole="switch"
+          role="switch"
+          accessibilityState={{ checked: accessibilityModeOn }}
+          accessibilityLabel="Accessibility mode"
+          accessibilityHint="Voice-first, large text, high contrast, captions"
         >
           <Card style={styles.a11yRow}>
-            <IconWell backgroundColor={colors.washPurple} size={44} radius={14}>
-              <Icon name="accessibility" size={22} color={colors.text} />
-            </IconWell>
-            <View style={styles.flex}>
-              <AppText variant="labelMD">Accessibility mode</AppText>
-              <AppText variant="caption">Voice-first, large text, high contrast, captions</AppText>
+            <View {...DECORATIVE_A11Y}>
+              <IconWell backgroundColor={colors.washPurple} size={44} radius={14}>
+                <Icon name="accessibility" size={22} color={colors.text} />
+              </IconWell>
             </View>
-            <View pointerEvents="none">
+            <View style={styles.flex} importantForAccessibility="no">
+              <AppText variant="labelMD" importantForAccessibility="no">Accessibility mode</AppText>
+              <AppText variant="caption" importantForAccessibility="no">Voice-first, large text, high contrast, captions</AppText>
+            </View>
+            <View pointerEvents="none" {...DECORATIVE_A11Y}>
               <Toggle
                 value={accessibilityModeOn}
                 onValueChange={() => {}}
@@ -128,82 +136,121 @@ export default function ProfileScreen({ onBack, onNav, onLogout }: Props) {
           </Card>
         </Pressable>
 
-        <Card style={styles.streakCard}>
-          <IconWell backgroundColor={colors.washPurple} size={56} radius={20}>
-            <Icon name="flame" size={26} color={colors.text} />
-          </IconWell>
-          <View style={styles.flex}>
-            <AppText variant="labelLG">5-day practice streak</AppText>
-            <AppText variant="bodySM">
+        <Card
+          style={styles.streakCard}
+          accessible
+          accessibilityLabel={`5-day practice streak, ${earnedCount} of ${badges.length} badges earned`}
+        >
+          <View {...DECORATIVE_A11Y}>
+            <IconWell backgroundColor={colors.washPurple} size={56} radius={20}>
+              <Icon name="flame" size={26} color={colors.text} />
+            </IconWell>
+          </View>
+          <View style={styles.flex} importantForAccessibility="no">
+            <AppText variant="labelLG" importantForAccessibility="no">5-day practice streak</AppText>
+            <AppText variant="bodySM" importantForAccessibility="no">
               {earnedCount} of {badges.length} badges earned
             </AppText>
           </View>
         </Card>
 
-        <AppText variant="headingSM" style={styles.section}>
+        <AppText variant="headingSM" style={styles.section} heading={2}>
           Badges
         </AppText>
-        <View style={styles.badgeList} role="list" accessibilityLabel="Badges">
+        <View
+          style={styles.badgeList}
+          accessibilityRole="list"
+          role="list"
+          accessibilityLabel="Badges"
+        >
           {badges.map((badge) => (
             <Card
               key={badge.label}
               role="listitem"
+              accessible
+              accessibilityLabel={`${badge.label}, ${badge.desc}, ${badge.earned ? "earned" : "locked"}`}
               style={[styles.badgeRow, !badge.earned && styles.badgeRowLocked]}
             >
-              <IconWell backgroundColor={badge.earned ? badge.color : colors.surfaceGhost} size={44} radius={14}>
-                <Icon
-                  name={badge.earned ? badge.icon : "lock-closed"}
-                  size={20}
-                  color={badge.earned ? colors.text : colors.textSubtle}
-                />
-              </IconWell>
-              <View style={styles.flex}>
-                <AppText variant="labelMD" color={badge.earned ? colors.text : colors.textMuted}>
+              <View {...DECORATIVE_A11Y}>
+                <IconWell backgroundColor={badge.earned ? badge.color : colors.surfaceGhost} size={44} radius={14}>
+                  <Icon
+                    name={badge.earned ? badge.icon : "lock-closed"}
+                    size={20}
+                    color={badge.earned ? colors.text : colors.textSubtle}
+                  />
+                </IconWell>
+              </View>
+              <View style={styles.flex} importantForAccessibility="no">
+                <AppText variant="labelMD" color={badge.earned ? colors.text : colors.textMuted} importantForAccessibility="no">
                   {badge.label}
                 </AppText>
-                <AppText variant="caption">{badge.desc}</AppText>
+                <AppText variant="caption" importantForAccessibility="no">{badge.desc}</AppText>
               </View>
               {badge.earned ? (
-                <Icon name="checkmark-circle" size={22} color={colors.successDark} />
+                <View {...DECORATIVE_A11Y}>
+                  <Icon name="checkmark-circle" size={22} color={colors.successDark} />
+                </View>
               ) : null}
             </Card>
           ))}
         </View>
 
-        <View style={styles.links} role="list" accessibilityLabel="More options">
+        <View
+          style={styles.links}
+          accessibilityRole="list"
+          role="list"
+          accessibilityLabel="More options"
+        >
           {LINKS.map((link) => (
-            <View key={link.screen} role="listitem">
+            <View
+              key={link.screen}
+              role="listitem"
+              accessible={false}
+            >
               <Pressable
                 onPress={() => onNav(link.screen)}
                 accessibilityRole="button"
                 role="button"
                 accessibilityLabel={link.label}
+                accessibilityHint={link.desc}
               >
                 <Card style={styles.linkRow}>
-                  <IconWell backgroundColor={colors.washPurple} size={44} radius={14}>
-                    <Icon name={link.icon} size={22} color={colors.text} />
-                  </IconWell>
-                  <View style={styles.flex}>
-                    <AppText variant="labelMD">{link.label}</AppText>
-                    <AppText variant="caption">{link.desc}</AppText>
+                  <View {...DECORATIVE_A11Y}>
+                    <IconWell backgroundColor={colors.washPurple} size={44} radius={14}>
+                      <Icon name={link.icon} size={22} color={colors.text} />
+                    </IconWell>
                   </View>
-                  <Icon name="chevron-forward" size={20} color={colors.textSubtle} />
+                  <View style={styles.flex} importantForAccessibility="no">
+                    <AppText variant="labelMD" importantForAccessibility="no">{link.label}</AppText>
+                    <AppText variant="caption" importantForAccessibility="no">{link.desc}</AppText>
+                  </View>
+                  <View {...DECORATIVE_A11Y}>
+                    <Icon name="chevron-forward" size={20} color={colors.textSubtle} />
+                  </View>
                 </Card>
               </Pressable>
             </View>
           ))}
         </View>
 
-        <Pressable onPress={confirmLogout} accessibilityRole="button" role="button" accessibilityLabel="Log out">
+        <Pressable
+          onPress={confirmLogout}
+          accessibilityRole="button"
+          role="button"
+          accessibilityLabel="Log out"
+          accessibilityHint="Signs you out of this account"
+        >
           <Card style={styles.linkRow}>
-            <IconWell backgroundColor={colors.dangerSurface} size={44} radius={14}>
-              <Icon name="log-out-outline" size={22} color={colors.danger} />
-            </IconWell>
-            <View style={styles.flex}>
-              <AppText variant="labelMD" color={colors.danger}>
+            <View {...DECORATIVE_A11Y}>
+              <IconWell backgroundColor={colors.dangerSurface} size={44} radius={14}>
+                <Icon name="log-out-outline" size={22} color={colors.danger} />
+              </IconWell>
+            </View>
+            <View style={styles.flex} importantForAccessibility="no">
+              <AppText variant="labelMD" color={colors.danger} importantForAccessibility="no">
                 Log out
               </AppText>
-              <AppText variant="caption">Sign out of this account</AppText>
+              <AppText variant="caption" importantForAccessibility="no">Sign out of this account</AppText>
             </View>
           </Card>
         </Pressable>

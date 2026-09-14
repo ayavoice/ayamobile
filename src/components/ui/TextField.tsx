@@ -43,9 +43,17 @@ export default function TextField({
   const styles = usePaletteStyles(createStyles);
   const [focused, setFocused] = useState(false);
 
+  const a11yLabel = [
+    accessibilityLabel ?? label,
+    prefix ? `country code ${prefix.split("").join(" ")}` : null,
+    error ? `Error: ${error}` : helper ?? null,
+  ]
+    .filter(Boolean)
+    .join(". ");
+
   return (
     <View style={styles.wrap}>
-      <AppText variant="labelSM" style={styles.label}>
+      <AppText variant="labelSM" style={styles.label} importantForAccessibility="no">
         {label}
       </AppText>
       <View
@@ -56,7 +64,12 @@ export default function TextField({
         ]}
       >
         {prefix ? (
-          <AppText variant="body" color={colors.textSecondary} style={styles.prefix}>
+          <AppText
+            variant="body"
+            color={colors.textSecondary}
+            style={styles.prefix}
+            importantForAccessibility="no"
+          >
             {prefix}
           </AppText>
         ) : null}
@@ -75,8 +88,8 @@ export default function TextField({
             onBlur?.();
           }}
           style={styles.input}
-          accessibilityLabel={accessibilityLabel ?? label}
-          accessibilityHint={error}
+          accessibilityLabel={a11yLabel}
+          accessibilityHint={error ? "Correct the field and try again" : undefined}
         />
       </View>
       {error ? (

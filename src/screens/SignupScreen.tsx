@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { AppText, BrandLogo, Button, Screen, ScreenFooter, ScreenHeader, TextField } from "../components/ui";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { fonts, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 const PHONE_LENGTH = 9;
@@ -30,7 +31,9 @@ export default function SignupScreen({ onNext, onBack, onLogin }: Props) {
       <ScreenHeader onBack={onBack} />
 
       <View style={styles.intro}>
-        <BrandLogo height={40} />
+        <View {...DECORATIVE_A11Y}>
+          <BrandLogo height={40} />
+        </View>
         <AppText variant="titleLG" align="center" heading={1} style={styles.introTitle}>
           Create your account
         </AppText>
@@ -76,10 +79,10 @@ export default function SignupScreen({ onNext, onBack, onLogin }: Props) {
           hitSlop={8}
           style={styles.footerLink}
         >
-          <AppText variant="bodySM" color={colors.textSecondary}>
+          <AppText variant="bodySM" color={colors.textSecondary} importantForAccessibility="no">
             Already have an account?{" "}
           </AppText>
-          <AppText variant="bodySM" color={colors.text} style={styles.footerLinkStrong}>
+          <AppText variant="bodySM" color={colors.text} style={styles.footerLinkStrong} importantForAccessibility="no">
             Log in
           </AppText>
         </Pressable>
@@ -107,7 +110,7 @@ function createStyles(colors: Palette) {
     footerLink: {
       flexDirection: "row" as const,
       justifyContent: "center" as const,
-      minHeight: 40,
+      minHeight: 44,
       alignItems: "center" as const,
     },
     footerLinkStrong: {

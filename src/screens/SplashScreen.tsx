@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, BrandLogo } from "../components/ui";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { spacing, useColors } from "../theme";
 
 type Props = { onNext: () => void };
@@ -36,9 +37,14 @@ export default function SplashScreen({ onNext }: Props) {
         role="button"
         accessibilityLabel="Continue to Aya"
       >
-        <BrandLogo height={92} />
+        <View {...DECORATIVE_A11Y}>
+          <BrandLogo height={92} />
+        </View>
 
-        <View style={[styles.dots, { bottom: Math.max(insets.bottom, 16) + 24 }]}>
+        <View
+          style={[styles.dots, { bottom: Math.max(insets.bottom, 16) + 24 }]}
+          {...DECORATIVE_A11Y}
+        >
           {[0, 1, 2].map((i) => (
             <View
               key={i}

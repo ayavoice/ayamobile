@@ -11,7 +11,7 @@ export default function BrandLogo({ height = 88, style }: Props) {
   return (
     <Image
       source={logo}
-      style={[styles.logo, { width: height * 3.05, height }, style]}
+      style={[styles.logo, { width: height * 3.4, height }, style]}
       resizeMode="contain"
       accessibilityLabel="Aya"
     />

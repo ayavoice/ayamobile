@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { AppText, Card, Icon, IconWell, MciIcon } from "../../components/ui";
+import { DECORATIVE_A11Y } from "../../lib/currency";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../../theme";
 import { buildLeague, type LeagueEntry, type LeagueTrend } from "../../content/play";
 
@@ -23,6 +24,12 @@ function TrendIcon({ trend }: { trend: LeagueTrend }) {
   return <Icon name="remove" size={12} color={colors.textSubtle} />;
 }
 
+function trendSpoken(trend: LeagueTrend) {
+  if (trend === "up") return "trending up";
+  if (trend === "down") return "trending down";
+  return "unchanged";
+}
+
 function PodiumSlot({
   entry,
   rank,
@@ -36,12 +43,22 @@ function PodiumSlot({
   barHeight: number;
   tierColor: string;
 }) {
+  const displayName = entry.isYou ? "You" : entry.name;
   return (
-    <View style={podiumSlotStyles.col}>
+    <View
+      style={podiumSlotStyles.col}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`Rank ${rank}, ${displayName}, ${entry.xp.toLocaleString()} XP${
+        entry.isYou ? ", this is you" : ""
+      }`}
+    >
       {rank === 1 ? (
-        <MciIcon name="crown" size={22} color={TIER.gold} style={podiumSlotStyles.crown} />
+        <View {...DECORATIVE_A11Y}>
+          <MciIcon name="crown" size={22} color={TIER.gold} style={podiumSlotStyles.crown} />
+        </View>
       ) : (
-        <View style={podiumSlotStyles.crownSpacer} />
+        <View style={podiumSlotStyles.crownSpacer} {...DECORATIVE_A11Y} />
       )}
       <View
         style={[
@@ -54,19 +71,20 @@ function PodiumSlot({
           },
           entry.isYou && { borderColor: "#FFFFFF" },
         ]}
+        importantForAccessibility="no"
       >
-        <AppText variant="labelLG" color="#FFFFFF">
+        <AppText variant="labelLG" color="#FFFFFF" importantForAccessibility="no">
           {initials(entry.name)}
         </AppText>
       </View>
-      <AppText variant="labelXS" color="#FFFFFF" numberOfLines={1} style={podiumSlotStyles.name}>
-        {entry.isYou ? "You" : entry.name}
+      <AppText variant="labelXS" color="#FFFFFF" numberOfLines={1} style={podiumSlotStyles.name} importantForAccessibility="no">
+        {displayName}
       </AppText>
-      <AppText variant="caption" color="rgba(255,255,255,0.68)">
+      <AppText variant="caption" color="rgba(255,255,255,0.68)" importantForAccessibility="no">
         {entry.xp.toLocaleString()} XP
       </AppText>
-      <View style={[podiumSlotStyles.bar, { height: barHeight, backgroundColor: tierColor }]}>
-        <AppText variant="labelMD" color="#1B1433">
+      <View style={[podiumSlotStyles.bar, { height: barHeight, backgroundColor: tierColor }]} importantForAccessibility="no">
+        <AppText variant="labelMD" color="#1B1433" importantForAccessibility="no">
           {rank}
         </AppText>
       </View>
@@ -84,11 +102,15 @@ export default function LeaderboardScreen({ xp }: Props) {
   return (
     <View style={styles.body}>
       <Card style={styles.introCard}>
-        <IconWell backgroundColor={colors.washPurple} size={52} radius={26}>
-          <Icon name="trophy" size={24} color={colors.text} />
-        </IconWell>
+        <View {...DECORATIVE_A11Y}>
+          <IconWell backgroundColor={colors.washPurple} size={52} radius={26}>
+            <Icon name="trophy" size={24} color={colors.text} />
+          </IconWell>
+        </View>
         <View style={styles.flex}>
-          <AppText variant="headingSM">Ghana League</AppText>
+          <AppText variant="headingSM" heading={2}>
+            Ghana League
+          </AppText>
           <AppText variant="caption" color={colors.textSubtle}>
             This week · you're #{youRank}
           </AppText>
@@ -121,33 +143,39 @@ export default function LeaderboardScreen({ xp }: Props) {
       </LinearGradient>
 
       <Card padded={false} style={styles.leagueCard}>
-        <View role="list" accessibilityLabel="Ghana League standings">
+        <View role="list" accessibilityRole="list" accessibilityLabel="Ghana League standings">
           {rest.map((entry, i) => {
             const rank = i + 4;
+            const displayName = entry.isYou ? "You" : entry.name;
             return (
               <View
                 key={entry.isYou ? "you" : entry.name}
                 role="listitem"
-                accessibilityLabel={`Rank ${rank}, ${entry.isYou ? "You" : entry.name}, ${entry.xp.toLocaleString()} XP, trend ${entry.trend}${
-                  entry.isYou ? ", this is you" : ""
-                }`}
+                accessible
+                accessibilityLabel={`Rank ${rank}, ${displayName}, ${entry.xp.toLocaleString()} XP, ${trendSpoken(
+                  entry.trend,
+                )}${entry.isYou ? ", this is you" : ""}`}
                 style={[
                   styles.leagueRow,
                   i < rest.length - 1 && styles.leagueRowDivider,
                   entry.isYou && { backgroundColor: colors.washPurple },
                 ]}
               >
-                <AppText variant="labelSM" color={colors.textSubtle} style={styles.rankWell}>
+                <AppText variant="labelSM" color={colors.textSubtle} style={styles.rankWell} importantForAccessibility="no">
                   {rank}
                 </AppText>
-                <IconWell backgroundColor={colors.surfaceGhost} size={36} radius={18}>
-                  <AppText variant="labelXS">{initials(entry.name)}</AppText>
-                </IconWell>
-                <AppText variant={entry.isYou ? "labelMD" : "bodySM"} style={styles.flex} numberOfLines={1}>
-                  {entry.isYou ? "You" : entry.name}
+                <View {...DECORATIVE_A11Y}>
+                  <IconWell backgroundColor={colors.surfaceGhost} size={36} radius={18}>
+                    <AppText variant="labelXS">{initials(entry.name)}</AppText>
+                  </IconWell>
+                </View>
+                <AppText variant={entry.isYou ? "labelMD" : "bodySM"} style={styles.flex} numberOfLines={1} importantForAccessibility="no">
+                  {displayName}
                 </AppText>
-                <TrendIcon trend={entry.trend} />
-                <AppText variant="labelSM" color={colors.textSubtle}>
+                <View {...DECORATIVE_A11Y}>
+                  <TrendIcon trend={entry.trend} />
+                </View>
+                <AppText variant="labelSM" color={colors.textSubtle} importantForAccessibility="no">
                   {entry.xp.toLocaleString()} XP
                 </AppText>
               </View>

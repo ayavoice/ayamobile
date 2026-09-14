@@ -1,215 +1,279 @@
-import { useRef, useEffect } from "react";
-import { Animated, Easing, ScrollView, StyleSheet, View } from "react-native";
-import { AppText, Button, Icon, IconWell, Screen, ScreenFooter, ScreenHeader } from "../components/ui";
+import { Pressable, ScrollView, View } from "react-native";
+import {
+  AppText,
+  Avatar,
+  Button,
+  Icon,
+  Screen,
+  ScreenFooter,
+  ScreenHeader,
+} from "../components/ui";
+import { brandImages } from "../content/brand";
 import { useAppPrefs } from "../context/AppPrefs";
-import { colors, radii, spacing } from "../theme";
+import { DECORATIVE_A11Y, formatCurrencySpoken, speakMaybeCurrency } from "../lib/currency";
+import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Props = { onConfirm: () => void; onBack: () => void };
 
 export default function ConfirmationScreen({ onConfirm, onBack }: Props) {
-  const { flow, accessibility } = useAppPrefs();
-  const waves = [
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-  ];
+  const colors = useColors();
+  const styles = usePaletteStyles(createStyles);
+  const { flow, activeFlow } = useAppPrefs();
+  const isBalance = activeFlow === "balance";
 
-  useEffect(() => {
-    waves.forEach((val, i) => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 150),
-          Animated.timing(val, {
-            toValue: 1,
-            duration: 400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(val, {
-            toValue: 0,
-            duration: 400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      ).start();
-    });
-  }, [waves]);
+  const recipient = flow.confirmTarget.replace(/^to\s+/i, "");
+  const amountSpoken = isBalance ? undefined : formatCurrencySpoken(flow.confirmHero);
+  const summaryLabel = isBalance
+    ? [flow.intentLabel, flow.confirmLead, recipient, flow.confirmMeta]
+        .filter(Boolean)
+        .join(", ")
+    : [flow.intentLabel, amountSpoken, `to ${recipient}`, speakMaybeCurrency(flow.confirmMeta)]
+        .filter(Boolean)
+        .join(", ");
+
+  const rows = flow.details.filter((d) => d.label !== "Amount");
 
   return (
-    <Screen background={colors.white}>
+    <Screen>
       <ScreenHeader title="Confirm" onBack={onBack} />
+
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.hero}>
-          <AppText variant="bodySM" color={colors.textInverseMuted} align="center">
-            {flow.confirmLead}
-          </AppText>
+        <View
+          accessible
+          accessibilityRole="summary"
+          role="summary"
+          accessibilityLabel={summaryLabel}
+          style={styles.hero}
+        >
           <AppText
-            variant="heroAmount"
+            variant="caption"
+            color={colors.textMuted}
             align="center"
-            style={styles.amount}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
+            style={styles.intent}
+            importantForAccessibility="no"
           >
-            {flow.confirmHero}
+            {flow.intentLabel}
           </AppText>
-          <AppText variant="heading" color={colors.textOnYellow} align="center" style={styles.to}>
-            {flow.confirmTarget}
-          </AppText>
-          <AppText variant="bodySM" color={colors.textInverseMuted} align="center">
-            {flow.confirmMeta}
-          </AppText>
+
+          {isBalance ? (
+            <>
+              <View style={styles.balanceIcon} {...DECORATIVE_A11Y}>
+                <Icon name="wallet" size={28} color={colors.purple} />
+              </View>
+              <AppText
+                variant="heading"
+                align="center"
+                color={colors.text}
+                style={styles.balanceTitle}
+                importantForAccessibility="no"
+              >
+                {flow.confirmLead}
+              </AppText>
+              <View style={styles.recipient} importantForAccessibility="no">
+                <View style={styles.metaText}>
+                  <AppText variant="labelSM" align="center" numberOfLines={1}>
+                    {recipient}
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color={colors.textMuted}
+                    align="center"
+                    numberOfLines={2}
+                  >
+                    {flow.confirmMeta}
+                  </AppText>
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <AppText
+                variant="displayLG"
+                align="center"
+                color={colors.text}
+                style={styles.amount}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+                importantForAccessibility="no"
+              >
+                {flow.confirmHero}
+              </AppText>
+
+              <View style={styles.recipient} importantForAccessibility="no">
+                <Avatar source={brandImages.ricky} size={40} />
+                <View style={styles.recipientText}>
+                  <AppText variant="labelSM" numberOfLines={1}>
+                    {recipient}
+                  </AppText>
+                  <AppText variant="caption" color={colors.textMuted} numberOfLines={1}>
+                    {flow.confirmMeta}
+                  </AppText>
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
-        <View style={styles.speak}>
-          <IconWell backgroundColor={colors.successSurface} size={44} radius={12}>
-            <Icon name="volume-high" size={22} color={colors.successDark} />
-          </IconWell>
-          <View style={styles.textFlex}>
-            <AppText variant="labelSM">
-              {accessibility.voiceFirst
-                ? "Aya is reading this aloud"
-                : "Review before you continue"}
-            </AppText>
-            <AppText variant="caption">
-              {accessibility.captions
-                ? "Live captions on"
-                : "Turn on captions in Accessibility"}
-            </AppText>
-          </View>
-          {accessibility.voiceFirst ? (
-            <View style={styles.bars}>
-              {[16, 28, 22, 18].map((h, i) => (
-                <Animated.View
-                  key={i}
-                  style={[
-                    styles.bar,
-                    {
-                      height: h,
-                      transform: [
-                        {
-                          scaleY: waves[i].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [1, 1.6],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                />
-              ))}
+        <View
+          style={styles.details}
+          accessible
+          accessibilityLabel={rows
+            .map((r) => `${r.label}, ${speakMaybeCurrency(r.value)}`)
+            .join(". ")}
+        >
+          {rows.map((row, i) => (
+            <View
+              key={row.label}
+              style={[styles.row, i === rows.length - 1 && styles.rowLast]}
+              importantForAccessibility="no"
+            >
+              <AppText variant="bodySM" color={colors.textMuted}>
+                {row.label}
+              </AppText>
+              <AppText variant="labelSM" style={styles.rowValue} numberOfLines={1}>
+                {row.value}
+              </AppText>
             </View>
-          ) : null}
-        </View>
-
-        {accessibility.captions ? (
-          <View style={styles.caption}>
-            <AppText variant="overline">Caption</AppText>
-            <AppText variant="bodySM" style={styles.captionText}>
-              {flow.readAloud}
-            </AppText>
-          </View>
-        ) : null}
-
-        <View style={styles.lock}>
-          <Icon name="lock-closed" size={22} color={colors.text} />
-          <AppText variant="bodySM" style={styles.lockText}>
-            Next: private device authentication. Microphone will turn OFF. Never speak your MoMo PIN.
-          </AppText>
+          ))}
         </View>
       </ScrollView>
 
       <ScreenFooter>
-        <Button onPress={onConfirm}>Continue</Button>
-        <Button onPress={onBack} variant="ghost">
-          Cancel
+        <Button onPress={onConfirm} variant="purple">
+          {isBalance ? "Check balance" : "Confirm"}
         </Button>
+        <View style={styles.linkRow}>
+          <Pressable
+            onPress={onBack}
+            accessibilityRole="button"
+            role="button"
+            accessibilityLabel="Change"
+            hitSlop={8}
+            style={styles.linkHit}
+          >
+            <AppText variant="labelSM" color={colors.text} importantForAccessibility="no">
+              Change
+            </AppText>
+          </Pressable>
+          <AppText variant="bodySM" color={colors.textSubtle} importantForAccessibility="no">
+            {" "}
+            ·{" "}
+          </AppText>
+          <Pressable
+            onPress={onBack}
+            accessibilityRole="button"
+            role="button"
+            accessibilityLabel="Cancel"
+            hitSlop={8}
+            style={styles.linkHit}
+          >
+            <AppText variant="labelSM" color={colors.textMuted} importantForAccessibility="no">
+              Cancel
+            </AppText>
+          </Pressable>
+        </View>
       </ScreenFooter>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    minHeight: 0,
-  },
-  body: {
-    paddingHorizontal: spacing.screenX,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-    alignItems: "center",
-  },
-  hero: {
-    width: "100%",
-    borderRadius: radii["4xl"],
-    backgroundColor: colors.purple,
-    paddingVertical: spacing["4xl"],
-    paddingHorizontal: spacing["3xl"],
-    marginBottom: spacing["2xl"],
-  },
-  amount: {
-    marginTop: spacing.sm,
-  },
-  to: {
-    marginTop: spacing.md,
-  },
-  speak: {
-    width: "100%",
-    backgroundColor: colors.surfaceCard,
-    borderRadius: radii.xl,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginBottom: spacing.lg,
-  },
-  textFlex: {
-    flex: 1,
-    minWidth: 0,
-  },
-  bars: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 4,
-  },
-  bar: {
-    width: 3,
-    borderRadius: 3,
-    backgroundColor: colors.purple,
-  },
-  caption: {
-    width: "100%",
-    backgroundColor: colors.surfaceCard,
-    borderRadius: radii.xl,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  captionText: {
-    marginTop: spacing.sm,
-    color: colors.text,
-  },
-  lock: {
-    width: "100%",
-    backgroundColor: colors.surfaceCard,
-    borderRadius: radii.xl,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "flex-start",
-  },
-  lockText: {
-    flex: 1,
-    color: colors.textSecondary,
-  },
-});
+function createStyles(colors: Palette) {
+  return {
+    flex: {
+      flex: 1,
+      minHeight: 0,
+    },
+    body: {
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing["2xl"],
+      paddingBottom: spacing.lg,
+      gap: spacing["2xl"],
+    },
+    hero: {
+      alignItems: "center" as const,
+      gap: spacing.sm,
+    },
+    intent: {
+      letterSpacing: 0.6,
+      textTransform: "uppercase" as const,
+    },
+    amount: {
+      letterSpacing: -1.2,
+      fontWeight: "800" as const,
+      marginTop: spacing.xs,
+      width: "100%" as const,
+    },
+    balanceIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.washPurple,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    balanceTitle: {
+      marginTop: spacing.xs,
+      paddingHorizontal: spacing.md,
+    },
+    metaText: {
+      alignItems: "center" as const,
+      gap: 4,
+      maxWidth: "100%" as const,
+      paddingHorizontal: spacing.md,
+    },
+    recipient: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: spacing.sm,
+      marginTop: spacing.md,
+      maxWidth: "100%" as const,
+    },
+    recipientText: {
+      flexShrink: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    details: {
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radii["2xl"],
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.sm,
+    },
+    row: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      gap: spacing.md,
+      minHeight: 48,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderMuted,
+    },
+    rowLast: {
+      borderBottomWidth: 0,
+    },
+    rowValue: {
+      flexShrink: 1,
+      textAlign: "right" as const,
+      maxWidth: "62%" as const,
+    },
+    linkRow: {
+      flexDirection: "row" as const,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      minHeight: 44,
+    },
+    linkHit: {
+      minHeight: 44,
+      justifyContent: "center" as const,
+      paddingHorizontal: spacing.xs,
+    },
+  };
+}

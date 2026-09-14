@@ -12,6 +12,7 @@ import {
   ScreenHeader,
   TextField,
 } from "../components/ui";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { fonts, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 const PIN_LENGTH = 4;
@@ -57,15 +58,23 @@ export default function LoginScreen({ onNext, onBack, onForgotPin, onSignup }: P
         />
 
         <View style={styles.pinBody}>
-          <IconWell backgroundColor={colors.washPurple} size={56} radius={20}>
-            <Icon name="lock-closed" size={26} color={colors.text} />
-          </IconWell>
+          <View {...DECORATIVE_A11Y}>
+            <IconWell backgroundColor={colors.washPurple} size={56} radius={20}>
+              <Icon name="lock-closed" size={26} color={colors.text} />
+            </IconWell>
+          </View>
 
           <AppText variant="labelLG" align="center" heading={1}>
             Enter your PIN
           </AppText>
 
-          <PinInput length={PIN_LENGTH} value={pin} onChangeText={onPinChange} autoFocus />
+          <PinInput
+            length={PIN_LENGTH}
+            value={pin}
+            onChangeText={onPinChange}
+            autoFocus
+            accessibilityLabel="Login PIN"
+          />
 
           <Pressable
             onPress={onForgotPin}
@@ -73,8 +82,9 @@ export default function LoginScreen({ onNext, onBack, onForgotPin, onSignup }: P
             role="button"
             accessibilityLabel="Forgot PIN?"
             hitSlop={8}
+            style={styles.forgotPin}
           >
-            <AppText variant="bodySM" color={colors.text}>
+            <AppText variant="bodySM" color={colors.text} importantForAccessibility="no">
               Forgot PIN?
             </AppText>
           </Pressable>
@@ -88,7 +98,9 @@ export default function LoginScreen({ onNext, onBack, onForgotPin, onSignup }: P
       <ScreenHeader onBack={onBack} />
 
       <View style={styles.intro}>
-        <BrandLogo height={40} />
+        <View {...DECORATIVE_A11Y}>
+          <BrandLogo height={40} />
+        </View>
         <AppText variant="titleLG" align="center" heading={1} style={styles.introTitle}>
           Welcome back
         </AppText>
@@ -124,10 +136,10 @@ export default function LoginScreen({ onNext, onBack, onForgotPin, onSignup }: P
           hitSlop={8}
           style={styles.footerLink}
         >
-          <AppText variant="bodySM" color={colors.textSecondary}>
+          <AppText variant="bodySM" color={colors.textSecondary} importantForAccessibility="no">
             New to Aya?{" "}
           </AppText>
-          <AppText variant="bodySM" color={colors.text} style={styles.footerLinkStrong}>
+          <AppText variant="bodySM" color={colors.text} style={styles.footerLinkStrong} importantForAccessibility="no">
             Create account
           </AppText>
         </Pressable>
@@ -155,7 +167,7 @@ function createStyles(colors: Palette) {
     footerLink: {
       flexDirection: "row" as const,
       justifyContent: "center" as const,
-      minHeight: 40,
+      minHeight: 44,
       alignItems: "center" as const,
     },
     footerLinkStrong: {
@@ -166,6 +178,11 @@ function createStyles(colors: Palette) {
       paddingHorizontal: spacing.screenX,
       paddingTop: spacing.xl,
       gap: spacing.xl,
+    },
+    forgotPin: {
+      minHeight: 44,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
     },
   };
 }

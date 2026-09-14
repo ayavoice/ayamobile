@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import type { ComponentProps } from "react";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { AppText, Icon, IconWell, Screen, ScreenHeader } from "../components/ui";
+import { DECORATIVE_A11Y, formatCurrencySpoken } from "../lib/currency";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Props = { onBack: () => void };
-type IonName = ComponentProps<typeof Ionicons>["name"];
 
 function txHistory(colors: Palette) {
   return [
@@ -30,17 +28,33 @@ export default function HistoryScreen({ onBack }: Props) {
   return (
     <Screen style={styles.root}>
       <ScreenHeader title="Transactions" onBack={onBack} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filters}
+        accessibilityRole="tablist"
+        accessibilityLabel="Filter transactions"
+      >
         {FILTERS.map((f) => {
           const on = filter === f;
+          const filterLabel = f.charAt(0).toUpperCase() + f.slice(1);
           return (
             <Pressable
               key={f}
               onPress={() => setFilter(f)}
               style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
+              accessibilityRole="tab"
+              role="tab"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={`Filter: ${filterLabel}`}
             >
-              <AppText variant="labelXS" color={on ? colors.textOnYellow : colors.text}>
-                {f.charAt(0).toUpperCase() + f.slice(1)}
+              <AppText
+                variant="labelXS"
+                color={on ? colors.textOnYellow : colors.text}
+                numberOfLines={1}
+                importantForAccessibility="no"
+              >
+                {filterLabel}
               </AppText>
             </Pressable>
           );
@@ -48,28 +62,46 @@ export default function HistoryScreen({ onBack }: Props) {
       </ScrollView>
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        <View style={styles.table}>
-          {items.map((tx, i) => (
-            <View
-              key={`${tx.label}-${tx.date}`}
-              style={[styles.row, i < items.length - 1 && styles.rowDivider]}
-            >
-              <IconWell backgroundColor={tx.color} size={44} radius={14}>
-                <Icon name={tx.icon} size={20} color={colors.text} />
-              </IconWell>
-              <View style={styles.flex}>
-                <AppText variant="labelSM" numberOfLines={1}>
-                  {tx.label}
-                </AppText>
-                <AppText variant="caption" numberOfLines={1}>
-                  {tx.sub} · {tx.date}
+        <View
+          accessibilityRole="list"
+          role="list"
+          accessibilityLabel={`Transactions, ${items.length} items`}
+        >
+          {items.map((tx, i) => {
+            const amountSpoken = formatCurrencySpoken(tx.amount);
+            const rowLabel = `${tx.label}, ${tx.sub}, ${tx.date}, ${amountSpoken}`;
+            return (
+              <View
+                key={`${tx.label}-${tx.date}`}
+                accessible
+                accessibilityRole="listitem"
+                role="listitem"
+                accessibilityLabel={rowLabel}
+                style={[styles.row, i < items.length - 1 && styles.rowDivider]}
+              >
+                <View {...DECORATIVE_A11Y}>
+                  <IconWell backgroundColor={tx.color} size={44} radius={14}>
+                    <Icon name={tx.icon} size={20} color={colors.text} />
+                  </IconWell>
+                </View>
+                <View style={styles.flex} importantForAccessibility="no">
+                  <AppText variant="labelSM" numberOfLines={1} importantForAccessibility="no">
+                    {tx.label}
+                  </AppText>
+                  <AppText variant="caption" numberOfLines={1} importantForAccessibility="no">
+                    {tx.sub} · {tx.date}
+                  </AppText>
+                </View>
+                <AppText
+                  variant="amount"
+                  color={tx.type === "received" ? colors.success : colors.text}
+                  importantForAccessibility="no"
+                >
+                  {tx.amount}
                 </AppText>
               </View>
-              <AppText variant="amount" color={tx.type === "received" ? colors.success : colors.text}>
-                {tx.amount}
-              </AppText>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
     </Screen>
@@ -83,11 +115,16 @@ function createHistoryStyles(colors: Palette) {
     paddingHorizontal: spacing.screenX,
     paddingBottom: spacing.lg,
     gap: spacing.sm,
+    alignItems: "center" as const,
   },
   chip: {
+    minHeight: 44,
+    minWidth: 72,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    paddingHorizontal: 18,
-    borderRadius: radii.pill,
+    borderRadius: radii["2xl"],
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   chipOn: {
     backgroundColor: colors.purple,
@@ -96,12 +133,8 @@ function createHistoryStyles(colors: Palette) {
     backgroundColor: colors.surfaceCard,
   },
   list: {
-    padding: spacing.xl,
-  },
-  table: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: radii.xl,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.screenX,
+    paddingBottom: spacing.xl,
   },
   row: {
     flexDirection: "row" as const,

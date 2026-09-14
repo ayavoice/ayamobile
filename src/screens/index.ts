@@ -21,6 +21,7 @@ export { default as ReceiptScreen } from "./ReceiptScreen";
 export { default as BalanceScreen } from "./BalanceScreen";
 export { default as HistoryScreen } from "./HistoryScreen";
 export { default as ServicesScreen } from "./ServicesScreen";
+export { default as MerchantReceiveScreen } from "./MerchantReceiveScreen";
 export { default as ProfileScreen } from "./ProfileScreen";
 export { default as GameScreen } from "./GameScreen";
 export { default as LeaderboardScreen } from "./LeaderboardScreen";

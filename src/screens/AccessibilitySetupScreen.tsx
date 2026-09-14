@@ -4,6 +4,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { AppText, Button, Icon, IconWell, Screen, ScreenFooter, Toggle } from "../components/ui";
 import { useAppPrefs } from "../context/AppPrefs";
 import type { AccessibilityPrefs } from "../context/AppPrefs";
+import { DECORATIVE_A11Y } from "../lib/currency";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
@@ -48,36 +49,45 @@ export default function AccessibilitySetupScreen({ onNext }: Props) {
           </AppText>
         </View>
 
-        <View style={styles.list}>
+        <View
+          style={styles.list}
+          accessibilityRole="list"
+          role="list"
+          accessibilityLabel={`Accessibility options, ${OPTIONS.length} items`}
+        >
           {OPTIONS.map((opt) => {
             const on = accessibility[opt.id];
             return (
-              <Pressable
-                key={opt.id}
-                onPress={() => setAccessibility({ [opt.id]: !on })}
-                accessibilityRole="button"
-                role="button"
-                accessibilityState={{ selected: on }}
-                accessibilityLabel={`${opt.label}: ${on ? "on" : "off"}`}
-                style={[styles.row, on && styles.rowOn]}
-              >
-                <IconWell
-                  backgroundColor={on ? colors.surface : colors.washPurple}
-                  size={44}
-                  radius={14}
+              <View key={opt.id} role="listitem">
+                <Pressable
+                  onPress={() => setAccessibility({ [opt.id]: !on })}
+                  accessibilityRole="switch"
+                  role="switch"
+                  accessibilityState={{ checked: on }}
+                  accessibilityLabel={opt.label}
+                  accessibilityHint={opt.desc}
+                  style={[styles.row, on && styles.rowOn]}
                 >
-                  <Icon name={opt.icon} size={22} color={colors.text} />
-                </IconWell>
-                <View style={styles.meta}>
-                  <AppText variant="labelMD">{opt.label}</AppText>
-                  <AppText variant="bodyXS" style={styles.desc}>
-                    {opt.desc}
-                  </AppText>
-                </View>
-                <View pointerEvents="none">
-                  <Toggle value={on} onValueChange={() => {}} accessibilityLabel={opt.label} />
-                </View>
-              </Pressable>
+                  <View {...DECORATIVE_A11Y}>
+                    <IconWell
+                      backgroundColor={on ? colors.surface : colors.washPurple}
+                      size={44}
+                      radius={14}
+                    >
+                      <Icon name={opt.icon} size={22} color={colors.text} />
+                    </IconWell>
+                  </View>
+                  <View style={styles.meta} importantForAccessibility="no">
+                    <AppText variant="labelMD" importantForAccessibility="no">{opt.label}</AppText>
+                    <AppText variant="bodyXS" style={styles.desc} importantForAccessibility="no">
+                      {opt.desc}
+                    </AppText>
+                  </View>
+                  <View pointerEvents="none" {...DECORATIVE_A11Y}>
+                    <Toggle value={on} onValueChange={() => {}} accessibilityLabel={opt.label} />
+                  </View>
+                </Pressable>
+              </View>
             );
           })}
         </View>
@@ -112,12 +122,12 @@ function createSetupStyles(colors: Palette) {
     gap: spacing.sm,
   },
   row: {
-    width: "100%",
+    width: "100%" as const,
     borderRadius: radii.xl,
     paddingVertical: 16,
     paddingHorizontal: spacing.lg,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     gap: spacing.md,
     backgroundColor: colors.surfaceCard,
   },
