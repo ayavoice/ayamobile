@@ -13,7 +13,7 @@ type Props = {
 export default function ScreenHeader({ title, onBack, right }: Props) {
   const colors = useColors();
   return (
-    <View style={styles.top}>
+    <View style={styles.top} accessibilityRole="header" role="banner">
       {onBack ? (
         <Pressable
           onPress={onBack}

@@ -28,7 +28,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "name": "Aya",
+      "shortName": "Aya",
+      "description": "Accessibility-first voice agent for mobile money in Akan (Twi) and Ewe.",
+      "themeColor": "#5528E8",
+      "backgroundColor": "#FFFFFF"
     },
     "plugins": [
       "expo-video"

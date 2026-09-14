@@ -118,7 +118,7 @@ export default function MerchantReceiveScreen({ onBack }: Props) {
             <AppText
               variant="heading"
               align="center"
-              heading={1}
+              heading={2}
               style={styles.title}
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -142,7 +142,7 @@ export default function MerchantReceiveScreen({ onBack }: Props) {
               "Hear the amount aloud",
               "Keep serving without checking",
             ].map((text) => (
-              <View key={text} style={styles.bullet} accessibilityRole="text">
+              <View key={text} style={styles.bullet} role="listitem" accessibilityRole="text">
                 <IconWell backgroundColor={colors.washPurple} size={36} radius={11}>
                   <WaveIcon size={18} color={colors.text} />
                 </IconWell>
@@ -171,7 +171,7 @@ export default function MerchantReceiveScreen({ onBack }: Props) {
           <View style={styles.setupHead}>
             <AppText
               variant="heading"
-              heading={1}
+              heading={2}
               numberOfLines={1}
               adjustsFontSizeToFit
             >

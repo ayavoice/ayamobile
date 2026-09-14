@@ -74,6 +74,9 @@ export default function Screen({
       style={[styles.root, { backgroundColor: resolvedBg }, style]}
       edges={[...edges]}
       role="main"
+      nativeID="main-content"
+      // Web skip-link target; RNW maps `id` onto the DOM node.
+      {...(Platform.OS === "web" ? ({ id: "main-content", tabIndex: -1 } as object) : null)}
     >
       <KeyboardAvoidingView
         style={styles.flex}

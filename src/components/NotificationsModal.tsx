@@ -234,7 +234,7 @@ export default function NotificationsModal({ visible, onClose }: Props) {
               </View>
 
               <View style={styles.header}>
-                <AppText variant="headingSM" heading={1}>
+                <AppText variant="headingSM" heading={2}>
                   Notifications
                 </AppText>
                 <Pressable

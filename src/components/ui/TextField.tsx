@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
+  Platform,
   TextInput,
   View,
   type KeyboardTypeOptions,
@@ -42,18 +43,25 @@ export default function TextField({
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
   const [focused, setFocused] = useState(false);
+  const reactId = useId();
+  const labelId = `field-label-${reactId}`;
+  const helperId = `field-helper-${reactId}`;
 
   const a11yLabel = [
     accessibilityLabel ?? label,
     prefix ? `country code ${prefix.split("").join(" ")}` : null,
-    error ? `Error: ${error}` : helper ?? null,
   ]
     .filter(Boolean)
     .join(". ");
 
   return (
     <View style={styles.wrap}>
-      <AppText variant="labelSM" style={styles.label} importantForAccessibility="no">
+      <AppText
+        variant="labelSM"
+        style={styles.label}
+        nativeID={labelId}
+        importantForAccessibility="no"
+      >
         {label}
       </AppText>
       <View
@@ -90,6 +98,13 @@ export default function TextField({
           style={styles.input}
           accessibilityLabel={a11yLabel}
           accessibilityHint={error ? "Correct the field and try again" : undefined}
+          accessibilityState={{ disabled: false }}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error || helper ? helperId : undefined}
+          // Keep focus ring on the field chrome; drop browser default ring.
+          {...(Platform.OS === "web"
+            ? ({ outlineStyle: "none", outlineWidth: 0 } as object)
+            : null)}
         />
       </View>
       {error ? (
@@ -97,12 +112,14 @@ export default function TextField({
           variant="caption"
           color={colors.danger}
           style={styles.helper}
+          nativeID={helperId}
           accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
         >
           {error}
         </AppText>
       ) : helper ? (
-        <AppText variant="caption" style={styles.helper}>
+        <AppText variant="caption" style={styles.helper} nativeID={helperId}>
           {helper}
         </AppText>
       ) : null}
@@ -145,9 +162,9 @@ function createStyles(colors: Palette) {
       color: colors.text,
       paddingVertical: 0,
       borderWidth: 0,
-      // react-native's TextStyle type omits "none", but web (react-native-web)
-      // supports it and this is the only way to drop the native focus ring.
-      ...({ outlineStyle: "none", outlineWidth: 0 } as object),
+      ...(Platform.OS === "web"
+        ? ({ outlineStyle: "none", outlineWidth: 0 } as object)
+        : null),
     },
     helper: {
       marginLeft: spacing.xs,

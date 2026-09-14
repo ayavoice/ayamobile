@@ -53,7 +53,14 @@ export default function Button({
   const colors = useColors();
   const isDisabled = disabled || loading;
   const resolvedLabel =
-    accessibilityLabel ?? (typeof children === "string" ? children : undefined);
+    accessibilityLabel ??
+    (typeof children === "string"
+      ? loading
+        ? `Loading, ${children}`
+        : children
+      : loading
+        ? "Loading"
+        : undefined);
 
   return (
     <Pressable

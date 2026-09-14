@@ -50,7 +50,7 @@ export default function PlayHub({ progress, onPlay, onOpenPath }: Props) {
         <AppText
           variant="titleLG"
           color={colors.white}
-          heading={1}
+          heading={2}
           style={styles.heroTitle}
           numberOfLines={2}
           adjustsFontSizeToFit

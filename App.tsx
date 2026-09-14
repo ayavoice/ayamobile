@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -8,6 +8,7 @@ import TabBar, { TAB_ROOT_SCREENS } from "./src/components/TabBar";
 import { AppPrefsProvider, useAppPrefs } from "./src/context/AppPrefs";
 import type { FlowId } from "./src/content/flows";
 import { useAppFonts } from "./src/hooks/useAppFonts";
+import { documentTitleFor } from "./src/navigation/screenTitles";
 import { useAppNavigation } from "./src/navigation/useAppNavigation";
 import { ThemeProvider, useColors, useTheme } from "./src/theme";
 import {
@@ -42,11 +43,26 @@ import {
   HelpScreen,
 } from "./src/screens";
 
+const LANG_HTML: Record<string, string> = {
+  en: "en",
+  tw: "tw",
+  ee: "ee",
+};
+
+function focusMainContent() {
+  if (Platform.OS !== "web" || typeof document === "undefined") return;
+  const main = document.getElementById("main-content");
+  if (main && typeof (main as HTMLElement).focus === "function") {
+    (main as HTMLElement).focus({ preventScroll: true });
+  }
+}
+
 function AppNavigator() {
-  const { setActiveFlow, activeFlow } = useAppPrefs();
+  const { setActiveFlow, activeFlow, language } = useAppPrefs();
   const { screen, go, back, resetTo } = useAppNavigation("splash");
   const [authMode, setAuthMode] = useState<"signup" | "reset">("signup");
   const [pendingPhone, setPendingPhone] = useState("");
+  const prevTitleRef = useRef<string>("");
 
   const goHome = useCallback(() => resetTo("home"), [resetTo]);
   const logout = useCallback(() => resetTo("login"), [resetTo]);
@@ -61,6 +77,17 @@ function AppNavigator() {
 
   const { isDark } = useTheme();
   const statusStyle = isDark ? "light" : "dark";
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+    const title = documentTitleFor(screen);
+    document.title = title;
+    document.documentElement.lang = LANG_HTML[language] ?? "en";
+    if (prevTitleRef.current && prevTitleRef.current !== title) {
+      requestAnimationFrame(() => focusMainContent());
+    }
+    prevTitleRef.current = title;
+  }, [screen, language]);
 
   let content = null;
   switch (screen) {
@@ -142,9 +169,7 @@ function AppNavigator() {
       );
       break;
     case "send-money":
-      content = (
-        <SendMoneyScreen onSend={() => go("biometric")} onBack={back} />
-      );
+      content = <SendMoneyScreen onSend={() => go("biometric")} onBack={back} />;
       break;
     case "transfer-receipt":
       content = (
@@ -157,14 +182,10 @@ function AppNavigator() {
       break;
     case "understanding":
     case "confirmation":
-      content = (
-        <ConfirmationScreen onConfirm={() => go("biometric")} onBack={back} />
-      );
+      content = <ConfirmationScreen onConfirm={() => go("biometric")} onBack={back} />;
       break;
     case "biometric":
-      content = (
-        <BiometricScreen onSuccess={() => go("processing")} onBack={back} />
-      );
+      content = <BiometricScreen onSuccess={() => go("processing")} onBack={back} />;
       break;
     case "processing":
       content = (
@@ -185,9 +206,7 @@ function AppNavigator() {
       content = <BalanceScreen onBack={goHome} />;
       break;
     case "success":
-      content = (
-        <SuccessScreen onDone={goHome} onReceipt={() => go("receipt")} />
-      );
+      content = <SuccessScreen onDone={goHome} onReceipt={() => go("receipt")} />;
       break;
     case "receipt":
       content = <ReceiptScreen onBack={back} />;
@@ -250,6 +269,8 @@ function BootScreen() {
           accessible
           accessibilityRole="progressbar"
           accessibilityLabel="Loading Aya"
+          nativeID="main-content"
+          {...(Platform.OS === "web" ? ({ id: "main-content", tabIndex: -1 } as object) : null)}
         >
           <ActivityIndicator
             size="large"

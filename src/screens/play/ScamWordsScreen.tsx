@@ -46,7 +46,7 @@ export default function ScamWordsScreen({ onExit, onFinish }: Props) {
           <View style={styles.waveWrap} {...DECORATIVE_A11Y}>
             <WaveIcon size={40} color={colors.purple} animated />
           </View>
-          <AppText variant="heading" heading={1} align="center">
+          <AppText variant="heading" heading={2} align="center">
             Scam words complete
           </AppText>
           <AppText variant="bodySM" align="center" color={colors.textMuted}>
@@ -74,7 +74,7 @@ export default function ScamWordsScreen({ onExit, onFinish }: Props) {
       <AppText variant="caption" color={colors.textMuted}>
         Round {index + 1} of {total}
       </AppText>
-      <AppText variant="headingSM" heading={1} style={styles.prompt}>
+      <AppText variant="headingSM" heading={2} style={styles.prompt}>
         Which word feels like a scam trap?
       </AppText>
       <View style={styles.messageCard} accessibilityRole="text">
