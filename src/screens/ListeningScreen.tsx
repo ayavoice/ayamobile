@@ -70,6 +70,7 @@ export default function ListeningScreen({ onNext, onBack }: Props) {
             accessibilityRole="switch"
             role="switch"
             accessibilityState={{ checked: muted }}
+            aria-checked={muted}
             accessibilityLabel="Mute microphone"
             accessibilityHint={muted ? "Unmutes the microphone" : "Mutes the microphone"}
             hitSlop={8}

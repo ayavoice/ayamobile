@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { AccessibilityInfo, Platform, Pressable, View } from "react-native";
 import type { ComponentProps } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { AppText, Button, Icon, Screen, ScreenFooter, ScreenHeader } from "../components/ui";
@@ -16,19 +16,42 @@ const METHODS: { id: Method; icon: IonName; label: string }[] = [
   { id: "device", icon: "keypad", label: "Passcode" },
 ];
 
+function announce(message: string) {
+  if (Platform.OS === "web") return;
+  AccessibilityInfo.announceForAccessibility(message);
+}
+
 export default function BiometricScreen({ onSuccess, onBack }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
   const [method, setMethod] = useState<Method>("finger");
   const [scanning, setScanning] = useState(false);
+  const [status, setStatus] = useState("");
+
+  const active = METHODS.find((m) => m.id === method)!;
+  const confirmLabel = scanning
+    ? `Verifying ${active.label}`
+    : `Touch to confirm with ${active.label}`;
+
+  const speak = (message: string) => {
+    setStatus(message);
+    announce(message);
+  };
+
+  const selectMethod = (id: Method) => {
+    const selected = METHODS.find((m) => m.id === id)!;
+    setMethod(id);
+    speak(
+      `${selected.label} selected. Next, activate Touch to confirm with ${selected.label}.`,
+    );
+  };
 
   const handleAuth = () => {
     if (scanning) return;
     setScanning(true);
+    speak(`Verifying ${active.label}`);
     setTimeout(onSuccess, 1600);
   };
-
-  const active = METHODS.find((m) => m.id === method)!;
 
   return (
     <Screen>
@@ -44,17 +67,30 @@ export default function BiometricScreen({ onSuccess, onBack }: Props) {
           </AppText>
         </View>
 
-        <View style={styles.methods} accessibilityLabel="Authentication method">
-          {METHODS.map((m) => {
+        <View
+          style={styles.methods}
+          accessibilityRole="radiogroup"
+          role="radiogroup"
+          accessibilityLabel="Choose an authentication method"
+        >
+          {METHODS.map((m, index) => {
             const on = method === m.id;
             return (
               <Pressable
                 key={m.id}
-                onPress={() => setMethod(m.id)}
-                accessibilityRole="button"
-                role="button"
-                accessibilityState={{ selected: on }}
+                onPress={() => selectMethod(m.id)}
+                accessibilityRole="radio"
+                role="radio"
+                accessibilityState={{ checked: on, selected: on }}
+                aria-checked={on}
+                {...(Platform.OS === "web"
+                  ? ({
+                      "aria-posinset": index + 1,
+                      "aria-setsize": METHODS.length,
+                    } as object)
+                  : null)}
                 accessibilityLabel={m.label}
+                accessibilityHint="Selects this method. Then activate Touch to confirm to authenticate."
                 style={[styles.method, on ? styles.methodOn : styles.methodOff]}
               >
                 <View {...DECORATIVE_A11Y}>
@@ -68,12 +104,24 @@ export default function BiometricScreen({ onSuccess, onBack }: Props) {
           })}
         </View>
 
+        <View
+          role="status"
+          accessibilityLiveRegion="polite"
+          aria-live="polite"
+          aria-atomic={true}
+          style={styles.srOnly}
+        >
+          <AppText>{status}</AppText>
+        </View>
+
         <Pressable
           onPress={handleAuth}
           accessibilityRole="button"
           role="button"
-          accessibilityLabel={`Authenticate with ${active.label}`}
+          accessibilityLabel={confirmLabel}
+          accessibilityHint="Authenticates using the selected method"
           accessibilityState={{ busy: scanning }}
+          aria-busy={scanning}
           style={[styles.auth, scanning ? styles.authOn : styles.authOff]}
         >
           <View {...DECORATIVE_A11Y}>
@@ -110,6 +158,7 @@ function createStyles(colors: Palette) {
       justifyContent: "center" as const,
       paddingHorizontal: spacing.xl,
       gap: spacing["2xl"],
+      position: "relative" as const,
     },
     intro: {
       alignItems: "center" as const,
@@ -149,6 +198,12 @@ function createStyles(colors: Palette) {
     },
     authOff: {
       backgroundColor: colors.surfaceCard,
+    },
+    srOnly: {
+      position: "absolute" as const,
+      width: 1,
+      height: 1,
+      overflow: "hidden" as const,
     },
   };
 }

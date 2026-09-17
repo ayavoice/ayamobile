@@ -199,11 +199,12 @@ export default function NotificationsModal({ visible, onClose }: Props) {
       onRequestClose={onClose}
     >
       <GestureHandlerRootView style={styles.root}>
-        <View style={styles.root} accessibilityViewIsModal>
+        <View style={styles.root} accessibilityViewIsModal aria-modal>
           <Pressable
             style={StyleSheet.absoluteFill}
             onPress={onClose}
             accessibilityRole="button"
+            role="button"
             accessibilityLabel="Dismiss notifications"
           >
             <Animated.View
@@ -214,6 +215,9 @@ export default function NotificationsModal({ visible, onClose }: Props) {
 
           <GestureDetector gesture={pan}>
             <Animated.View
+              accessibilityRole="none"
+              role="dialog"
+              accessibilityLabel="Notifications"
               style={[
                 styles.sheet,
                 {
@@ -329,7 +333,7 @@ function Section({
             key={item.id}
             onPress={() => onPress(item.id)}
             accessibilityRole="button"
-            role="listitem"
+            role="button"
             accessibilityLabel={`${item.unread ? "Unread. " : ""}${item.title}. ${item.body}. ${item.time}`}
             accessibilityHint={item.unread ? "Marks this notification as read" : undefined}
             style={[styles.row, index < items.length - 1 && styles.rowDivider]}
@@ -371,7 +375,7 @@ function createStyles(colors: Palette) {
       justifyContent: "flex-end" as const,
     },
     backdrop: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
     sheet: {
       borderTopLeftRadius: radii["3xl"],
@@ -405,11 +409,11 @@ function createStyles(colors: Palette) {
       marginBottom: spacing.xs,
     },
     closeBtn: {
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       alignItems: "center" as const,
       justifyContent: "center" as const,
-      borderRadius: 20,
+      borderRadius: 22,
       backgroundColor: colors.surfaceCard,
     },
     toolbar: {

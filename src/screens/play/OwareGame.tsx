@@ -281,7 +281,12 @@ export default function OwareGame({
         </View>
       </View>
 
-      <View style={styles.choices} role="list" accessibilityRole="list" accessibilityLabel="Choices">
+      <View
+        style={styles.choices}
+        role="radiogroup"
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Choices"
+      >
         {round.choices.map((c) => {
           const isSelected = choice?.id === c.id;
           const revealTier = answered && isSelected;
@@ -290,10 +295,12 @@ export default function OwareGame({
               key={c.id}
               disabled={answered}
               onPress={() => pick(c)}
-              accessibilityRole="button"
-              role="button"
+              accessibilityRole="radio"
+              role="radio"
               accessibilityLabel={speakChoiceLabel(c.label)}
-              accessibilityState={{ selected: isSelected, disabled: answered }}
+              accessibilityState={{ checked: isSelected, selected: isSelected, disabled: answered }}
+              aria-checked={isSelected}
+              aria-disabled={answered || undefined}
               style={[
                 styles.choice,
                 revealTier && c.tier === "best" && styles.choiceGood,
@@ -320,7 +327,7 @@ export default function OwareGame({
 
       {answered && choice ? (
         <>
-          <AppText variant="bodySM" style={styles.explanation} accessibilityLiveRegion="polite">
+          <AppText variant="bodySM" style={styles.explanation} accessibilityLiveRegion="polite" aria-live="polite" role="status">
             {choice.feedback}
           </AppText>
           <ChunkyButton

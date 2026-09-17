@@ -59,7 +59,6 @@ see [AGENTS.md](AGENTS.md) for engineering notes on the current implementation.
 ## Tech stack
 
 - [Expo](https://expo.dev) / React Native (`~57`), TypeScript
-- NativeWind (Tailwind for React Native)
 - `react-native-safe-area-context`, `react-native-reanimated`, `react-native-svg`
 
 ## Getting started

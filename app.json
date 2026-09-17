@@ -34,9 +34,6 @@
       "description": "Accessibility-first voice agent for mobile money in Akan (Twi) and Ewe.",
       "themeColor": "#5528E8",
       "backgroundColor": "#FFFFFF"
-    },
-    "plugins": [
-      "expo-video"
-    ]
+    }
   }
 }

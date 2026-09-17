@@ -75,7 +75,7 @@ export default function SignupScreen({ onNext, onBack, onLogin }: Props) {
           onPress={onLogin}
           accessibilityRole="button"
           role="button"
-          accessibilityLabel="I already have an account"
+          accessibilityLabel="Log in. I already have an account"
           hitSlop={8}
           style={styles.footerLink}
         >

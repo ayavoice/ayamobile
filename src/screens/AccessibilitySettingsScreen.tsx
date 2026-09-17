@@ -42,7 +42,12 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
           <AppText variant="labelMD" style={styles.cardTitle} heading={2}>
             Language
           </AppText>
-          <View style={styles.row}>
+          <View
+            style={styles.row}
+            accessibilityRole="radiogroup"
+            role="radiogroup"
+            accessibilityLabel="Language"
+          >
             {(
               [
                 { code: "tw", label: "Twi" },
@@ -56,9 +61,10 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
                   key={lang.code}
                   onPress={() => setLanguage(lang.code)}
                   style={[styles.choice, on ? styles.choiceOn : styles.choiceOff]}
-                  accessibilityRole="button"
-                  role="button"
-                  accessibilityState={{ selected: on }}
+                  accessibilityRole="radio"
+                  role="radio"
+                  accessibilityState={{ checked: on, selected: on }}
+                  aria-checked={on}
                   accessibilityLabel={lang.label}
                 >
                   <AppText variant="labelXS" color={on ? colors.textOnYellow : colors.text} importantForAccessibility="no">
@@ -74,7 +80,12 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
           <AppText variant="labelMD" style={styles.cardTitle} heading={2}>
             Text size
           </AppText>
-          <View style={styles.row}>
+          <View
+            style={styles.row}
+            accessibilityRole="radiogroup"
+            role="radiogroup"
+            accessibilityLabel="Text size"
+          >
             {[16, 20, 26].map((size, i) => {
               const level = (i + 1) as 1 | 2 | 3;
               const on = accessibility.textSize === level;
@@ -83,10 +94,11 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
                   key={size}
                   onPress={() => setAccessibility({ textSize: level, largeText: level > 1 })}
                   style={[styles.choice, on ? styles.choiceOn : styles.choiceOff]}
-                  accessibilityRole="button"
-                  role="button"
-                  accessibilityState={{ selected: on }}
-                  accessibilityLabel={`Text size ${TEXT_SIZE_LABELS[i]}, level ${level}`}
+                  accessibilityRole="radio"
+                  role="radio"
+                  accessibilityState={{ checked: on, selected: on }}
+                  aria-checked={on}
+                  accessibilityLabel={`A, ${TEXT_SIZE_LABELS[i]} text size`}
                   accessibilityHint="Makes text larger or smaller"
                 >
                   <AppText style={{ fontSize: size, fontWeight: "700", color: on ? colors.textOnYellow : colors.text }} importantForAccessibility="no">
@@ -102,7 +114,12 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
           <AppText variant="labelMD" style={styles.cardTitle} heading={2}>
             Speech speed
           </AppText>
-          <View style={styles.row}>
+          <View
+            style={styles.row}
+            accessibilityRole="radiogroup"
+            role="radiogroup"
+            accessibilityLabel="Speech speed"
+          >
             {(["Slow", "Normal", "Fast"] as const).map((label, i) => {
               const level = (i + 1) as 1 | 2 | 3;
               const on = accessibility.speechSpeed === level;
@@ -111,9 +128,10 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
                   key={label}
                   onPress={() => setAccessibility({ speechSpeed: level })}
                   style={[styles.choice, on ? styles.choiceOn : styles.choiceOff]}
-                  accessibilityRole="button"
-                  role="button"
-                  accessibilityState={{ selected: on }}
+                  accessibilityRole="radio"
+                  role="radio"
+                  accessibilityState={{ checked: on, selected: on }}
+                  aria-checked={on}
                   accessibilityLabel={`Speech speed: ${label}`}
                   accessibilityHint="Changes how fast Aya speaks"
                 >
@@ -137,6 +155,7 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
               accessibilityRole="switch"
               role="switch"
               accessibilityState={{ checked }}
+              aria-checked={checked}
               accessibilityLabel={opt.label}
               accessibilityHint={opt.desc}
             >

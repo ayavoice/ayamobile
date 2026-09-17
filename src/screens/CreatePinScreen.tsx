@@ -77,6 +77,8 @@ export default function CreatePinScreen({ mode, onDone, onBack }: Props) {
             align="center"
             accessibilityLiveRegion="polite"
             accessibilityRole="alert"
+            role="alert"
+            aria-live="assertive"
           >
             PINs didn't match. Let's try again.
           </AppText>

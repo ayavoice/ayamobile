@@ -13,7 +13,6 @@ export type ScreenId =
   | "listening"
   | "send-money"
   | "transfer-receipt"
-  | "understanding"
   | "confirmation"
   | "biometric"
   | "processing"

@@ -36,51 +36,51 @@ export default function LanguageScreen({ onNext }: Props) {
 
       <View
         style={styles.list}
-        accessibilityRole="list"
-        role="list"
-        accessibilityLabel={`Languages, ${LANGUAGES.length} items`}
+        accessibilityRole="radiogroup"
+        role="radiogroup"
+        accessibilityLabel="Choose your language"
       >
         {LANGUAGES.map((lang) => {
           const active = selected === lang.code;
           return (
-            <View key={lang.code} role="listitem">
-              <Pressable
-                onPress={() => setSelected(lang.code)}
-                accessibilityRole="button"
-                role="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={`${lang.name}, sample: ${lang.sample}`}
-                style={[styles.row, active && styles.rowActive]}
-              >
-                <View {...DECORATIVE_A11Y}>
-                  <IconWell
-                    backgroundColor={active ? colors.surface : colors.washPurple}
-                    size={52}
-                    radius={18}
-                  >
-                    <AppText variant="labelMD" color={colors.text}>
-                      {lang.badge}
-                    </AppText>
-                  </IconWell>
-                </View>
-
-                <View style={styles.meta} importantForAccessibility="no">
-                  <AppText variant="heading" numberOfLines={1} importantForAccessibility="no">
-                    {lang.name}
-                  </AppText>
-                  <AppText variant="bodySM" style={styles.sample} numberOfLines={1} importantForAccessibility="no">
-                    {lang.sample}
-                  </AppText>
-                </View>
-
-                <View
-                  style={[styles.check, active ? styles.checkOn : styles.checkOff]}
-                  {...DECORATIVE_A11Y}
+            <Pressable
+              key={lang.code}
+              onPress={() => setSelected(lang.code)}
+              accessibilityRole="radio"
+              role="radio"
+              accessibilityState={{ checked: active, selected: active }}
+              aria-checked={active}
+              accessibilityLabel={`${lang.name}, sample: ${lang.sample}`}
+              style={[styles.row, active && styles.rowActive]}
+            >
+              <View {...DECORATIVE_A11Y}>
+                <IconWell
+                  backgroundColor={active ? colors.surface : colors.washPurple}
+                  size={52}
+                  radius={18}
                 >
-                  {active ? <Icon name="checkmark" size={16} color={colors.textOnYellow} /> : null}
-                </View>
-              </Pressable>
-            </View>
+                  <AppText variant="labelMD" color={colors.text}>
+                    {lang.badge}
+                  </AppText>
+                </IconWell>
+              </View>
+
+              <View style={styles.meta} importantForAccessibility="no">
+                <AppText variant="heading" numberOfLines={1} importantForAccessibility="no">
+                  {lang.name}
+                </AppText>
+                <AppText variant="bodySM" style={styles.sample} numberOfLines={1} importantForAccessibility="no">
+                  {lang.sample}
+                </AppText>
+              </View>
+
+              <View
+                style={[styles.check, active ? styles.checkOn : styles.checkOff]}
+                {...DECORATIVE_A11Y}
+              >
+                {active ? <Icon name="checkmark" size={16} color={colors.textOnYellow} /> : null}
+              </View>
+            </Pressable>
           );
         })}
       </View>

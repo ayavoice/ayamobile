@@ -72,6 +72,8 @@ export default function Button({
       accessibilityLabel={resolvedLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
+      aria-disabled={isDisabled}
+      aria-busy={loading}
       style={({ pressed }) => [
         styles.base,
         { backgroundColor: variantFill(variant, colors) },

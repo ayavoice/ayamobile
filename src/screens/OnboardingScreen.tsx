@@ -57,15 +57,21 @@ export default function OnboardingScreen({ onNext }: Props) {
         </View>
       </View>
 
-      <View style={styles.dots}>
+      <View
+        style={styles.dots}
+        accessibilityRole="tablist"
+        role="tablist"
+        accessibilityLabel="Onboarding slides"
+      >
         {SLIDES.map((_, i) => (
           <Pressable
             key={i}
             onPress={() => setSlide(i)}
-            accessibilityRole="button"
-            role="button"
+            accessibilityRole="tab"
+            role="tab"
             accessibilityState={{ selected: i === slide }}
-            accessibilityLabel={`Go to slide ${i + 1} of ${SLIDES.length}`}
+            aria-selected={i === slide}
+            accessibilityLabel={`Slide ${i + 1} of ${SLIDES.length}, ${SLIDES[i].title}`}
             style={styles.dotHit}
           >
             <View style={[styles.dot, i === slide ? styles.dotActive : styles.dotIdle]} />
@@ -97,7 +103,7 @@ function createOnboardingStyles(colors: Palette) {
     },
     skipButton: {
       alignSelf: "flex-end" as const,
-      minHeight: 0,
+      minHeight: 44,
       backgroundColor: "transparent",
       paddingHorizontal: spacing.xs,
       paddingVertical: 4,

@@ -87,7 +87,8 @@ export default function BalanceScreen({ onBack }: Props) {
             accessibilityRole="button"
             role="button"
             accessibilityLabel={revealed ? "Hide balance" : "Reveal balance"}
-            accessibilityState={{ selected: revealed }}
+            accessibilityState={{ expanded: revealed }}
+            aria-expanded={revealed}
           >
             <View {...DECORATIVE_A11Y}>
               <Icon

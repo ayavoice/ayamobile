@@ -99,6 +99,7 @@ export default function HelpScreen({ onBack }: Props) {
           role="button"
           accessibilityLabel={errorDemo ? "Hide error states" : "Show error states"}
           accessibilityState={{ expanded: errorDemo }}
+          aria-expanded={errorDemo}
         >
           <AppText variant="labelSM" importantForAccessibility="no">
             {errorDemo ? "Hide" : "Show"} error states

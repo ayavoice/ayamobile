@@ -12,7 +12,6 @@ export { default as HomeScreen } from "./HomeScreen";
 export { default as ListeningScreen } from "./ListeningScreen";
 export { default as SendMoneyScreen } from "./SendMoneyScreen";
 export { default as TransferReceiptScreen } from "./TransferReceiptScreen";
-export { default as UnderstandingScreen } from "./UnderstandingScreen";
 export { default as ConfirmationScreen } from "./ConfirmationScreen";
 export { default as BiometricScreen } from "./BiometricScreen";
 export { default as ProcessingScreen } from "./ProcessingScreen";

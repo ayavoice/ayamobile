@@ -192,6 +192,7 @@ export default function MerchantReceiveScreen({ onBack }: Props) {
             accessibilityRole="switch"
             role="switch"
             accessibilityState={{ checked: announceAll }}
+            aria-checked={announceAll}
             accessibilityLabel="Announce every payment on speaker"
             accessibilityHint="When on, Aya reads each payment aloud"
             style={[styles.prefCard, announceAll && styles.prefCardOn]}

@@ -180,7 +180,6 @@ function AppNavigator() {
         />
       );
       break;
-    case "understanding":
     case "confirmation":
       content = <ConfirmationScreen onConfirm={() => go("biometric")} onBack={back} />;
       break;

@@ -81,7 +81,12 @@ export default function ScamWordsScreen({ onExit, onFinish }: Props) {
         <AppText variant="body">{round.message}</AppText>
       </View>
 
-      <View style={styles.options} accessibilityRole="list" accessibilityLabel="Word choices">
+      <View
+        style={styles.options}
+        accessibilityRole="radiogroup"
+        role="radiogroup"
+        accessibilityLabel="Word choices"
+      >
         {round.options.map((option) => {
           const selected = picked === option;
           const isAnswer = option === round.answer;
@@ -95,9 +100,11 @@ export default function ScamWordsScreen({ onExit, onFinish }: Props) {
               key={option}
               onPress={() => choose(option)}
               disabled={Boolean(picked)}
-              accessibilityRole="button"
-              role="button"
-              accessibilityState={{ selected, disabled: Boolean(picked) }}
+              accessibilityRole="radio"
+              role="radio"
+              accessibilityState={{ checked: selected, selected, disabled: Boolean(picked) }}
+              aria-checked={selected}
+              aria-disabled={Boolean(picked) || undefined}
               accessibilityLabel={option}
               style={[styles.option, { backgroundColor: bg }]}
             >
@@ -108,7 +115,7 @@ export default function ScamWordsScreen({ onExit, onFinish }: Props) {
       </View>
 
       {picked ? (
-        <View style={styles.tip} accessibilityLiveRegion="polite">
+        <View style={styles.tip} accessibilityLiveRegion="polite" aria-live="polite" role="status">
           <IconWell
             backgroundColor={correct ? colors.successSurface : colors.dangerSurface}
             size={36}

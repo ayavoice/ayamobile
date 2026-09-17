@@ -97,6 +97,8 @@ export default function TextField({
           }}
           style={styles.input}
           accessibilityLabel={a11yLabel}
+          accessibilityLabelledBy={labelId}
+          aria-labelledby={labelId}
           accessibilityHint={error ? "Correct the field and try again" : undefined}
           accessibilityState={{ disabled: false }}
           aria-invalid={error ? true : undefined}
@@ -115,6 +117,8 @@ export default function TextField({
           nativeID={helperId}
           accessibilityLiveRegion="polite"
           accessibilityRole="alert"
+          role="alert"
+          aria-live="assertive"
         >
           {error}
         </AppText>

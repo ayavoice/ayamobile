@@ -2,12 +2,10 @@ import { ComponentProps } from "react";
 import { StyleProp, StyleSheet, TextStyle, View, ViewStyle } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import Feather from "@expo/vector-icons/Feather";
 import { useColors } from "../../theme";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
-type FeatherName = ComponentProps<typeof Feather>["name"];
 
 const DECORATIVE = {
   accessible: false as const,
@@ -21,12 +19,10 @@ type IconProps = {
   size?: number;
   color?: string;
   style?: StyleProp<TextStyle>;
-  /** When true, icon is announced (use only if it is the sole name). */
   accessible?: boolean;
   accessibilityLabel?: string;
 };
 
-/** Primary app icon set — decorative by default so labeled parents speak once. */
 export default function Icon({
   name,
   size = 24,
@@ -82,38 +78,6 @@ export function MciIcon({
   );
 }
 
-export function FeatherIcon({
-  name,
-  size = 24,
-  color,
-  style,
-  accessible = false,
-  accessibilityLabel,
-}: {
-  name: FeatherName;
-  size?: number;
-  color?: string;
-  style?: StyleProp<TextStyle>;
-  accessible?: boolean;
-  accessibilityLabel?: string;
-}) {
-  const palette = useColors();
-  return (
-    <Feather
-      name={name}
-      size={size}
-      color={color ?? palette.text}
-      style={style}
-      accessible={accessible}
-      accessibilityLabel={accessible ? accessibilityLabel : undefined}
-      accessibilityElementsHidden={!accessible}
-      importantForAccessibility={accessible ? "yes" : "no-hide-descendants"}
-      aria-hidden={!accessible}
-    />
-  );
-}
-
-/** Circular / rounded icon well used in lists and cards. */
 export function IconWell({
   children,
   backgroundColor,

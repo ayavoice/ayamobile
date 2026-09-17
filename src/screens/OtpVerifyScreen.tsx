@@ -58,7 +58,19 @@ export default function OtpVerifyScreen({ phone, onVerified, onBack }: Props) {
             accessibilityLabel="Verification code"
           />
           {verifying ? (
-            <ActivityIndicator color={colors.text} style={styles.spinner} {...DECORATIVE_A11Y} />
+            <>
+              <ActivityIndicator color={colors.text} style={styles.spinner} {...DECORATIVE_A11Y} />
+              <AppText
+                variant="bodySM"
+                color={colors.textSecondary}
+                accessibilityLiveRegion="polite"
+                accessibilityRole="alert"
+                role="status"
+                aria-live="polite"
+              >
+                Verifying code
+              </AppText>
+            </>
           ) : null}
         </View>
 
@@ -69,6 +81,7 @@ export default function OtpVerifyScreen({ phone, onVerified, onBack }: Props) {
           role="button"
           accessibilityLabel="Resend code"
           accessibilityState={{ disabled: verifying }}
+          aria-disabled={verifying}
           hitSlop={8}
           style={styles.resend}
         >

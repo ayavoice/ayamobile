@@ -23,12 +23,10 @@ export type LocalGame = {
   subtitle: string;
   icon: IonName;
   levelLabel: string;
-  /** Only playable games open a session today; others show as coming soon. */
   playable: boolean;
   wash: "purple" | "blue" | "yellow" | "green";
 };
 
-/** Classic Ghanaian / local practice games in the Learn hub. */
 export const LOCAL_GAMES: LocalGame[] = [
   {
     id: "oware",
@@ -103,10 +101,6 @@ export const LOCAL_GAMES: LocalGame[] = [
     wash: "green",
   },
 ];
-
-// ---------------------------------------------------------------------------
-// Learn paths: thinking, safety, and scam awareness
-// ---------------------------------------------------------------------------
 
 export type LearnPathId = "think" | "safety" | "scam-words" | "practice";
 
@@ -197,57 +191,6 @@ export const SCAM_WORD_ROUNDS: ScamWordRound[] = [
     tip: "Secret deals and pressure for now are classic scam bait.",
   },
 ];
-
-// ---------------------------------------------------------------------------
-// Level ladder
-// ---------------------------------------------------------------------------
-
-export const LEVELS: { name: string; min: number }[] = [
-  { name: "New Learner", min: 0 },
-  { name: "MoMo Smart", min: 100 },
-  { name: "Safety Champion", min: 250 },
-];
-
-export function levelForXp(xp: number) {
-  let index = 0;
-  for (let i = 0; i < LEVELS.length; i++) {
-    if (xp >= LEVELS[i].min) index = i;
-  }
-  const current = LEVELS[index];
-  const next = LEVELS[index + 1] ?? null;
-  const progressPct = next
-    ? Math.min(1, Math.max(0, (xp - current.min) / (next.min - current.min)))
-    : 1;
-  return { index, name: current.name, min: current.min, next, progressPct };
-}
-
-// ---------------------------------------------------------------------------
-// Ghana League (leaderboard)
-// ---------------------------------------------------------------------------
-
-export type LeagueTrend = "up" | "down" | "flat";
-
-export type LeagueEntry = { name: string; xp: number; trend: LeagueTrend; isYou?: boolean };
-
-export const MOCK_LEAGUE: { name: string; xp: number; trend: LeagueTrend }[] = [
-  { name: "Ama", xp: 320, trend: "up" },
-  { name: "Kofi", xp: 280, trend: "up" },
-  { name: "Akua", xp: 240, trend: "down" },
-  { name: "Kwame", xp: 190, trend: "flat" },
-  { name: "Yaw", xp: 150, trend: "down" },
-];
-
-/** Ranks the mock Ghana League against the player's own XP. */
-export function buildLeague(xp: number): { league: LeagueEntry[]; youRank: number } {
-  const you: LeagueEntry = { name: "You", xp, trend: "flat", isYou: true };
-  const league: LeagueEntry[] = [...MOCK_LEAGUE, you].sort((a, b) => b.xp - a.xp);
-  const youRank = league.findIndex((entry) => entry.isYou) + 1;
-  return { league, youRank };
-}
-
-// ---------------------------------------------------------------------------
-// Oware: Money Moves — a short, local, mock money-decision game
-// ---------------------------------------------------------------------------
 
 export type OwareChoice = {
   id: string;

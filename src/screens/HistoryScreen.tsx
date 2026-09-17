@@ -33,6 +33,7 @@ export default function HistoryScreen({ onBack }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filters}
         accessibilityRole="tablist"
+        role="tablist"
         accessibilityLabel="Filter transactions"
       >
         {FILTERS.map((f) => {
@@ -46,6 +47,7 @@ export default function HistoryScreen({ onBack }: Props) {
               accessibilityRole="tab"
               role="tab"
               accessibilityState={{ selected: on }}
+              aria-selected={on}
               accessibilityLabel={`Filter: ${filterLabel}`}
             >
               <AppText
@@ -74,7 +76,6 @@ export default function HistoryScreen({ onBack }: Props) {
               <View
                 key={`${tx.label}-${tx.date}`}
                 accessible
-                accessibilityRole="listitem"
                 role="listitem"
                 accessibilityLabel={rowLabel}
                 style={[styles.row, i < items.length - 1 && styles.rowDivider]}

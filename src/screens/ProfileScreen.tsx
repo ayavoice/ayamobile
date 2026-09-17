@@ -113,6 +113,7 @@ export default function ProfileScreen({ onBack, onNav, onLogout }: Props) {
           accessibilityRole="switch"
           role="switch"
           accessibilityState={{ checked: accessibilityModeOn }}
+          aria-checked={accessibilityModeOn}
           accessibilityLabel="Accessibility mode"
           accessibilityHint="Voice-first, large text, high contrast, captions"
         >

@@ -14,7 +14,6 @@ type PinInputProps = {
   textContentType?: "oneTimeCode" | "password" | "newPassword" | "none";
 };
 
-/** PIN/OTP entry backed by the device's own numeric keyboard — dots are the only visible UI. */
 export default function PinInput({
   length,
   value,
@@ -55,6 +54,12 @@ export default function PinInput({
         textContentType={textContentType}
         style={styles.hiddenInput}
         accessibilityLabel={accessibilityLabel ?? "PIN"}
+        accessibilityValue={{
+          text: `${value.length} of ${length} digits entered`,
+        }}
+        accessibilityState={{ disabled: !editable }}
+        aria-invalid={error ? true : undefined}
+        aria-disabled={!editable || undefined}
       />
     </Pressable>
   );

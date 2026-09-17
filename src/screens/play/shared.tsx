@@ -87,6 +87,7 @@ export function ChunkyButton({
         role="button"
         accessibilityLabel={label}
         accessibilityState={{ disabled: isDisabled }}
+        aria-disabled={isDisabled}
         style={({ pressed }) => ({
           flexDirection: "row",
           alignItems: "center",

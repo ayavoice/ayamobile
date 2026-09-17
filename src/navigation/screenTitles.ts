@@ -1,6 +1,5 @@
 import type { ScreenId } from "./types";
 
-/** Human-readable titles for document.title and route announcements. */
 export const SCREEN_TITLES: Record<ScreenId, string> = {
   splash: "Aya",
   onboarding: "Welcome",
@@ -16,7 +15,6 @@ export const SCREEN_TITLES: Record<ScreenId, string> = {
   listening: "Listening",
   "send-money": "Send money",
   "transfer-receipt": "Transfer receipt",
-  understanding: "Confirm",
   confirmation: "Confirm",
   biometric: "Authenticate",
   processing: "Processing",

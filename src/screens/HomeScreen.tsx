@@ -35,22 +35,14 @@ import NotificationsModal from "../components/NotificationsModal";
 import { ACCENT, ACCENT_BLUE, brandImages } from "../content/brand";
 import type { FlowId } from "../content/flows";
 import { SERVICES } from "../content/services";
-import { formatCurrency, formatCurrencySpoken } from "../lib/currency";
+import { formatCurrency, formatCurrencySpoken, DECORATIVE_A11Y } from "../lib/currency";
 import type { ScreenId } from "../navigation/types";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
-/** Hide decorative visuals from VoiceOver / TalkBack without affecting layout. */
-const DECORATIVE = {
-  accessible: false as const,
-  accessibilityElementsHidden: true,
-  importantForAccessibility: "no-hide-descendants" as const,
-};
-
-type BannerIllustration = "voice" | "gift" | "shield" | "trophy" | "speaker";
+type BannerIllustration = "voice" | "gift" | "trophy" | "speaker";
 
 const ART_SIZE = 168;
 
-/** Soft ambient blobs behind every scene — Uber-style depth without flat icon chrome. */
 function ArtAtmosphere({
   blob = "rgba(255,255,255,0.55)",
   accent = "rgba(85,40,232,0.14)",
@@ -69,7 +61,6 @@ function ArtAtmosphere({
   );
 }
 
-/** Voice send — mic capsule + ripples + floating cedi chip. */
 function VoiceIllustration() {
   return (
     <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
@@ -84,7 +75,6 @@ function VoiceIllustration() {
         </LinearGradient>
       </Defs>
       <ArtAtmosphere accent="rgba(40,48,240,0.12)" />
-      {/* Voice ripples */}
       <Path
         d="M118 62c10 8 10 28 0 36"
         stroke={ACCENT_BLUE}
@@ -101,17 +91,14 @@ function VoiceIllustration() {
         fill="none"
         opacity={0.22}
       />
-      {/* Mic stand */}
       <Rect x={82} y={108} width={6} height={18} rx={3} fill="#C8CBE8" />
       <Ellipse cx={85} cy={128} rx={18} ry={5} fill="#FFFFFF" />
       <Ellipse cx={85} cy={128} rx={18} ry={5} fill="rgba(40,48,240,0.08)" />
-      {/* Capsule */}
       <Rect x={70} y={48} width={30} height={58} rx={15} fill="url(#voiceMic)" />
       <Rect x={76} y={56} width={18} height={36} rx={9} fill="url(#voiceBody)" />
       <Circle cx={85} cy={66} r={3.5} fill="#FFFFFF" opacity={0.85} />
       <Circle cx={85} cy={76} r={3.5} fill="#FFFFFF" opacity={0.55} />
       <Circle cx={85} cy={86} r={3.5} fill="#FFFFFF" opacity={0.35} />
-      {/* Floating send chip */}
       <G>
         <Ellipse cx={128} cy={98} rx={22} ry={16} fill="#FFFFFF" />
         <Ellipse cx={128} cy={98} rx={22} ry={16} fill="rgba(40,48,240,0.06)" />
@@ -128,7 +115,6 @@ function VoiceIllustration() {
   );
 }
 
-/** Referral gift — dimensional box, ribbon, floating coin. */
 function GiftIllustration() {
   return (
     <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
@@ -147,27 +133,22 @@ function GiftIllustration() {
         </LinearGradient>
       </Defs>
       <ArtAtmosphere accent="rgba(46,180,90,0.14)" blob="rgba(255,255,255,0.5)" />
-      {/* Confetti */}
       <Circle cx={48} cy={58} r={3.5} fill="#2DBE6C" opacity={0.7} />
       <Rect x={130} y={48} width={7} height={7} rx={2} fill={ACCENT} opacity={0.55} />
       <Circle cx={138} cy={78} r={2.5} fill="#F0B429" />
-      {/* Box body */}
       <Path
         d="M52 78h64c6 0 10 4 10 10v36c0 6-4 10-10 10H52c-6 0-10-4-10-10V88c0-6 4-10 10-10z"
         fill="url(#giftBox)"
       />
       <Rect x={78} y={78} width={12} height={56} fill="rgba(85,40,232,0.18)" />
-      {/* Lid */}
       <Path
         d="M46 68h76c5 0 8 3 8 8v8H38v-8c0-5 3-8 8-8z"
         fill="url(#giftLid)"
       />
       <Rect x={78} y={68} width={12} height={16} fill="rgba(255,255,255,0.35)" />
-      {/* Bow */}
       <Path d="M84 68c-14-2-22-16-12-22 8-4 14 8 12 22z" fill="#7B20E8" />
       <Path d="M84 68c14-2 22-16 12-22-8-4-14 8-12 22z" fill="#9B5CFF" />
       <Circle cx={84} cy={66} r={5} fill="#FFFFFF" />
-      {/* Coin */}
       <Circle cx={128} cy={108} r={18} fill="url(#giftCoin)" />
       <Circle cx={128} cy={108} r={13} fill="#FFF6D6" />
       <Path
@@ -181,42 +162,6 @@ function GiftIllustration() {
   );
 }
 
-/** Security shield — kept for parity if reused. */
-function ShieldIllustration() {
-  return (
-    <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
-      <Defs>
-        <LinearGradient id="shieldFace" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#FFFFFF" />
-          <Stop offset="1" stopColor="#EDE8FF" />
-        </LinearGradient>
-        <LinearGradient id="shieldCore" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={ACCENT_BLUE} />
-          <Stop offset="1" stopColor={ACCENT} />
-        </LinearGradient>
-      </Defs>
-      <ArtAtmosphere />
-      <Path
-        d="M84 42l40 16v28c0 28-18 46-40 54-22-8-40-26-40-54V58z"
-        fill="url(#shieldFace)"
-      />
-      <Path
-        d="M84 54l28 12v22c0 20-13 34-28 40-15-6-28-20-28-40V66z"
-        fill="url(#shieldCore)"
-      />
-      <Path
-        d="M72 88l8 8 16-18"
-        stroke="#FFFFFF"
-        strokeWidth={5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </Svg>
-  );
-}
-
-/** Leaderboard trophy — cup, handles, star, soft podium. */
 function TrophyIllustration() {
   return (
     <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
@@ -231,15 +176,11 @@ function TrophyIllustration() {
         </LinearGradient>
       </Defs>
       <ArtAtmosphere accent="rgba(240,180,41,0.16)" blob="rgba(255,255,255,0.52)" />
-      {/* Sparkles */}
       <Path d="M48 58l2.5 5.5 5.5 2.5-5.5 2.5L48 74l-2.5-5.5L40 66l5.5-2.5z" fill="#F0B429" opacity={0.85} />
       <Path d="M132 50l2 4.2 4.2 2-4.2 2L132 62.4l-2-4.2-4.2-2 4.2-2z" fill={ACCENT} opacity={0.55} />
-      {/* Podium */}
       <Rect x={58} y={124} width={52} height={10} rx={4} fill="#FFFFFF" />
       <Rect x={66} y={116} width={36} height={10} rx={3} fill="url(#trophyStem)" />
-      {/* Stem */}
       <Rect x={80} y={100} width={8} height={18} rx={3} fill="#D4D7F0" />
-      {/* Cup */}
       <Path
         d="M58 48h52v22c0 18-12 32-26 32S58 88 58 70z"
         fill="url(#trophyCup)"
@@ -249,7 +190,6 @@ function TrophyIllustration() {
         fill="#FFF6D6"
         opacity={0.55}
       />
-      {/* Handles */}
       <Path
         d="M58 56c-12 0-18 8-18 16s8 14 16 14"
         stroke="#F0B429"
@@ -264,7 +204,6 @@ function TrophyIllustration() {
         strokeLinecap="round"
         fill="none"
       />
-      {/* Star */}
       <Path
         d="M84 62l3.2 6.6 7.3 1.1-5.3 5.1 1.3 7.2L84 78.6l-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1.1z"
         fill={ACCENT}
@@ -273,7 +212,6 @@ function TrophyIllustration() {
   );
 }
 
-/** Merchant paid aloud — phone + speaker waves + paid toast. */
 function SpeakerIllustration() {
   return (
     <Svg width={ART_SIZE} height={ART_SIZE} viewBox="0 0 168 168">
@@ -288,7 +226,6 @@ function SpeakerIllustration() {
         </LinearGradient>
       </Defs>
       <ArtAtmosphere />
-      {/* Sound rings */}
       <Path
         d="M122 58c12 10 12 34 0 44"
         stroke={ACCENT}
@@ -305,16 +242,13 @@ function SpeakerIllustration() {
         fill="none"
         opacity={0.18}
       />
-      {/* Phone */}
       <Rect x={58} y={42} width={52} height={88} rx={14} fill="url(#phoneBody)" />
       <Rect x={64} y={52} width={40} height={62} rx={8} fill="url(#phoneScreen)" />
       <Ellipse cx={84} cy={120} rx={8} ry={3} fill="rgba(85,40,232,0.2)" />
-      {/* Waveform on screen */}
       <Rect x={72} y={72} width={4} height={12} rx={2} fill="#FFFFFF" opacity={0.9} />
       <Rect x={80} y={66} width={4} height={24} rx={2} fill="#FFFFFF" />
       <Rect x={88} y={70} width={4} height={16} rx={2} fill="#FFFFFF" opacity={0.9} />
       <Rect x={96} y={74} width={4} height={8} rx={2} fill="#FFFFFF" opacity={0.75} />
-      {/* Paid toast */}
       <G>
         <Rect x={108} y={88} width={44} height={28} rx={14} fill="#FFFFFF" />
         <Circle cx={122} cy={102} r={8} fill="#2DBE6C" />
@@ -337,8 +271,7 @@ function BannerArt({ kind }: { kind: BannerIllustration }) {
   if (kind === "voice") return <VoiceIllustration />;
   if (kind === "gift") return <GiftIllustration />;
   if (kind === "trophy") return <TrophyIllustration />;
-  if (kind === "speaker") return <SpeakerIllustration />;
-  return <ShieldIllustration />;
+  return <SpeakerIllustration />;
 }
 
 type Props = {
@@ -459,7 +392,7 @@ function MicWaveBar({ height, delay, color }: { height: number; delay: number; c
 
 function MicWave() {
   return (
-    <View style={micWaveStyles.row} {...DECORATIVE}>
+    <View style={micWaveStyles.row} {...DECORATIVE_A11Y}>
       {MIC_WAVE_BARS.map((bar, i) => (
         <MicWaveBar key={i} height={bar.h} delay={bar.delay} color={bar.color} />
       ))}
@@ -543,7 +476,7 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
               style={styles.iconBtn}
             >
               <Icon name="notifications-outline" size={22} color={colors.text} />
-              <View style={styles.notifDot} {...DECORATIVE} />
+              <View style={styles.notifDot} {...DECORATIVE_A11Y} />
             </Pressable>
             <Pressable
               onPress={() => onNav("services")}
@@ -595,7 +528,7 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
             style={styles.cardStack as ImageStyle}
             resizeMode="contain"
             accessibilityIgnoresInvertColors
-            {...DECORATIVE}
+            {...DECORATIVE_A11Y}
           />
           <View style={styles.micWrap}>
             <Pressable
@@ -698,7 +631,7 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
                     !available && styles.quickAccessDisabled,
                   ]}
                 >
-                  <View style={styles.quickAccessInner} {...DECORATIVE}>
+                  <View style={styles.quickAccessInner} {...DECORATIVE_A11Y}>
                     <IconWell backgroundColor={colors.washPurple} size={48} radius={16}>
                       <Icon name={service.icon} size={24} color={colors.text} />
                     </IconWell>
@@ -723,7 +656,7 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
                 pressed && styles.quickAccessPressed,
               ]}
             >
-              <View style={styles.quickAccessInner} {...DECORATIVE}>
+              <View style={styles.quickAccessInner} {...DECORATIVE_A11Y}>
                 <IconWell backgroundColor={colors.washBlue} size={48} radius={16}>
                   <Icon name="grid-outline" size={24} color={colors.text} />
                 </IconWell>
@@ -763,12 +696,12 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
                 }
                 style={[styles.bannerCard, { backgroundColor: banner.bg }]}
               >
-                <View style={styles.bannerText} {...DECORATIVE}>
+                <View style={styles.bannerText} {...DECORATIVE_A11Y}>
                   <AppText variant="labelLG" color={colors.text}>
                     {banner.title}
                   </AppText>
                 </View>
-                <View style={styles.bannerArt} {...DECORATIVE}>
+                <View style={styles.bannerArt} {...DECORATIVE_A11Y}>
                   <BannerArt kind={banner.illustration} />
                 </View>
               </Pressable>
@@ -812,9 +745,10 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
                   accessibilityLabel={`Quick send to ${person.name}, ${index + 1} of ${QUICK_SEND.length}`}
                   accessibilityHint="Starts a voice transfer to this contact"
                   accessibilityState={{ selected }}
+                  aria-selected={selected}
                   style={styles.quickItem}
                 >
-                  <View {...DECORATIVE}>
+                  <View {...DECORATIVE_A11Y}>
                     <Avatar source={person.image} size={58} />
                     <AppText variant="caption" numberOfLines={1} style={styles.quickName}>
                       {person.name}
@@ -871,7 +805,7 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
                         ? styles.spotifyMark
                         : { backgroundColor: tintColor(action.tint, colors) },
                     ]}
-                    {...DECORATIVE}
+                    {...DECORATIVE_A11Y}
                   >
                     {action.icon === "spotify" ? (
                       <MciIcon name="spotify" size={22} color={colors.white} />
@@ -879,7 +813,7 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
                       <Icon name={action.icon} size={20} color={colors.text} />
                     )}
                   </View>
-                  <View style={styles.actionText} {...DECORATIVE}>
+                  <View style={styles.actionText} {...DECORATIVE_A11Y}>
                     <AppText variant="labelSM" numberOfLines={1}>
                       {action.label}
                     </AppText>

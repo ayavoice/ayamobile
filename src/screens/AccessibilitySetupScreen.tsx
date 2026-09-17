@@ -64,6 +64,7 @@ export default function AccessibilitySetupScreen({ onNext }: Props) {
                   accessibilityRole="switch"
                   role="switch"
                   accessibilityState={{ checked: on }}
+                  aria-checked={on}
                   accessibilityLabel={opt.label}
                   accessibilityHint={opt.desc}
                   style={[styles.row, on && styles.rowOn]}
