@@ -55,7 +55,7 @@ function noAmountReadAloud(
   const how = ASK_AMOUNT[language];
   switch (flow) {
     case "transfer":
-      if (language === "tw") return `Worebɛ soma ama ${subject}. ${how}`;
+      if (language === "tw") return `Ahe na wobɛ soma ama ${subject}`;
       if (language === "ee") return `Èle ɖo ge na ${subject}. ${how}`;
       return `You want to send to ${subject}. ${how}`;
     case "airtime":
