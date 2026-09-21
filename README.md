@@ -50,26 +50,62 @@ money, and every transaction is reviewable and cancellable before it executes.**
 ## Current status
 
 This repo is the hackathon deliverable: a cross-platform (Expo/React Native) mobile app
-implementing the accessibility-first UI shell and three simulated transaction flows — **transfer,
-balance inquiry, and airtime top-up** — including confirmation read-back and settings for voice,
-language, and accessibility preferences. The on-device ASR/NLU pipeline and Android
-AccessibilityService automation described above are the target architecture for the full product;
-see [AGENTS.md](AGENTS.md) for engineering notes on the current implementation.
+implementing the accessibility-first UI shell and the three flows — **transfer, balance inquiry,
+and airtime top-up** — with spoken confirmation read-back and settings for voice, language, and
+accessibility. Underneath, the money path is **real**:
+
+- Auth is OTP/JWT against `ayavoice/ayaserver` (6-digit codes, session kept in `expo-secure-store`).
+- Transfers/balance/airtime drive a real MTN MoMo USSD session through `modules/aya-automator`, a
+  native Android **AccessibilityService** that reads the live UI tree and executes the flow. All MTN
+  menu intelligence lives in `src/lib/ussdMissions.ts`, so flow tuning is a JS reload — never a
+  native rebuild. Nothing on the money path is simulated on the device.
+- The `@aya/shared` contracts are **vendored** into this repo (`packages/shared`) so the app
+  builds standalone; keep it in sync with `ayavoice/ayaserver`.
+
+See [AGENTS.md](AGENTS.md) for engineering notes and constraints on the current implementation.
 
 ## Tech stack
 
 - [Expo](https://expo.dev) / React Native (`~57`), TypeScript
 - `react-native-safe-area-context`, `react-native-reanimated`, `react-native-svg`
+- `modules/aya-automator` — Kotlin module exposing the USSD AccessibilityService
+  (`com.ayavoice.mobile.automation.AyaAutomationService`)
+
+## Architecture
+
+```
+ayamobile ── OTP/JWT ──▶ ayavoice/ayaserver ── /v1/transcribe,/v1/speak ──▶ ayavoice/ayaai
+   │                      Fastify + Neon/Drizzle                        Python FastAPI
+   └─ modules/aya-automator (AccessibilityService drives live MTN MoMo USSD)
+```
 
 ## Getting started
+
+Prerequisites: Node.js 20+, Expo Go **or** a dev build (to exercise the USSD automator you need a
+dev client — `eas build --platform android --profile development --apk`, sideloaded).
 
 ```bash
 npm install
 npm run start        # or: npm run android / npm run ios / npm run web
 ```
 
-Expo 57 has changed significantly from earlier versions — see
-[AGENTS.md](AGENTS.md) before writing code against it.
+The app auto-detects the backend host (`src/services/api.ts`): `EXPO_PUBLIC_API_URL` env override
+> the Expo dev-server host on your LAN (`http://<pc-ip>:4000`) > emulator loopback. To target a
+shared server explicitly, create a local `.env` (gitignored):
+
+```
+EXPO_PUBLIC_API_URL=http://192.168.1.50:4000
+```
+
+Expo 57 has changed significantly from earlier versions — see [AGENTS.md](AGENTS.md) before writing
+code against it.
+
+## Related repositories
+
+| repo | role |
+| --- | --- |
+| `ayavoice/ayaserver` | Fastify API: auth, wallet ledger, voice proxy |
+| `ayavoice/ayaai` | Python ASR/TTS service (local CPU or Kaggle GPU) |
 
 ## Scale and impact
 
