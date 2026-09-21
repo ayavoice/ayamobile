@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import {
   AppText,
@@ -10,7 +11,9 @@ import {
 } from "../components/ui";
 import { brandImages } from "../content/brand";
 import { useAppPrefs } from "../context/AppPrefs";
+import { useAyaSpeech } from "../hooks/useAyaSpeech";
 import { DECORATIVE_A11Y, formatCurrencySpoken, speakMaybeCurrency } from "../lib/currency";
+import { speakOrAlert } from "../lib/voice-unavailable";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Props = { onConfirm: () => void; onBack: () => void };
@@ -18,7 +21,8 @@ type Props = { onConfirm: () => void; onBack: () => void };
 export default function ConfirmationScreen({ onConfirm, onBack }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
-  const { flow, activeFlow } = useAppPrefs();
+  const { flow, activeFlow, language, accessibility } = useAppPrefs();
+  const { speakLocalized, stop } = useAyaSpeech();
   const isBalance = activeFlow === "balance";
 
   const recipient = flow.confirmTarget.replace(/^to\s+/i, "");
@@ -32,6 +36,12 @@ export default function ConfirmationScreen({ onConfirm, onBack }: Props) {
         .join(", ");
 
   const rows = flow.details.filter((d) => d.label !== "Amount");
+
+  useEffect(() => {
+    if (accessibility.screenReader) return;
+    void speakOrAlert(speakLocalized, flow.readAloud, language, onBack);
+    return () => stop();
+  }, [flow.readAloud, language, accessibility.screenReader, speakLocalized, stop, onBack]);
 
   return (
     <Screen>
@@ -149,6 +159,25 @@ export default function ConfirmationScreen({ onConfirm, onBack }: Props) {
           {isBalance ? "Check balance" : "Confirm"}
         </Button>
         <View style={styles.linkRow}>
+          <Pressable
+            onPress={() => {
+              void speakOrAlert(speakLocalized, flow.readAloud, language, onBack);
+            }}
+            accessibilityRole="button"
+            role="button"
+            accessibilityLabel="Hear this again"
+            accessibilityHint="Replays the spoken summary of this transaction"
+            hitSlop={8}
+            style={styles.linkHit}
+          >
+            <AppText variant="labelSM" color={colors.text} importantForAccessibility="no">
+              Replay
+            </AppText>
+          </Pressable>
+          <AppText variant="bodySM" color={colors.textSubtle} importantForAccessibility="no">
+            {" "}
+            ·{" "}
+          </AppText>
           <Pressable
             onPress={onBack}
             accessibilityRole="button"

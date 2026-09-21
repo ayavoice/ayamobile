@@ -1,0 +1,7 @@
+{
+  "name": "aya-automator",
+  "version": "0.1.0",
+  "description": "On-device USSD automator for Aya: AccessibilityService-driven MTN MoMo sessions.",
+  "main": "index.ts",
+  "private": true
+}

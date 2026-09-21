@@ -11,9 +11,25 @@ it executes; the microphone closes before any PIN/biometric handoff, and PINs/OT
 spoken, captured, or transmitted. Keep this invariant in mind for any change touching a
 transaction flow, confirmation step, or auth handoff. Full product context: [README.md](README.md).
 
-This repo (`mobile/`) is currently the Expo/React Native UI shell and simulated transaction flows
-(transfer, balance, airtime) for the hackathon deliverable — the on-device ASR/NLU and Android
-AccessibilityService automation are not yet implemented here.
+This repo (`mobile/`) is the Expo/React Native app for the hackathon deliverable. The money path
+is REAL: auth is OTP/JWT against `../ayaserver` (6-digit codes, session kept in expo-secure-store),
+and transfers/balance/airtime drive a real MTN MoMo USSD session through the local native module
+`modules/aya-automator` (an Android AccessibilityService that is a generic mission executor). All
+MTN menu intelligence lives in `src/lib/ussdMissions.ts`, so flow tuning is a JS reload — never a
+native rebuild. Nothing on the money path is simulated on device.
+
+Build model: no local Android build. Use EAS cloud builds — `eas build --platform android
+--profile development --apk` — and sideload the dev client. The AccessibilityService is
+`com.ayavoice.mobile.automation.AyaAutomationService`.
+
+# Engineering constraints
+
+- `npx tsc --noEmit` must stay clean after every change.
+- `npx expo install <pkg>` for any new Expo-native dependency (Expo SDK 57).
+- PINs/OTPs: never logged, never transmitted, never spoken. Auto-PIN mode stores the MoMo PIN in
+  expo-secure-store and hands it in-process to the USSD dialog only.
+- Aya Drive (the accessibility service) and the CALL_PHONE runtime permission are preflighted in
+  `src/screens/ProcessingScreen.tsx` before any mission starts.
 
 # Expo HAS CHANGED
 

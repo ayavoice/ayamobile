@@ -2,7 +2,7 @@ import { Image, StyleSheet, View, type ImageSourcePropType } from "react-native"
 import { useColors } from "../../theme";
 
 type Props = {
-  source: ImageSourcePropType;
+  source?: ImageSourcePropType;
   size: number;
 };
 
@@ -20,13 +20,15 @@ export default function Avatar({ source, size }: Props) {
         },
       ]}
     >
-      <Image
-        source={source}
-        style={{ width: size, height: size }}
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      />
+      {source ? (
+        <Image
+          source={source}
+          style={{ width: size, height: size }}
+          accessible={false}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+      ) : null}
     </View>
   );
 }

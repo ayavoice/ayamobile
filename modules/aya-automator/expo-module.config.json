@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["com.ayavoice.mobile.automation.AyaAutomatorModule"]
+  }
+}

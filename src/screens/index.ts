@@ -10,6 +10,8 @@ export { default as LanguageScreen } from "./LanguageScreen";
 export { default as AccessibilitySetupScreen } from "./AccessibilitySetupScreen";
 export { default as HomeScreen } from "./HomeScreen";
 export { default as ListeningScreen } from "./ListeningScreen";
+export { default as PayeeListScreen } from "./PayeeListScreen";
+export { default as NumberEntryScreen } from "./NumberEntryScreen";
 export { default as SendMoneyScreen } from "./SendMoneyScreen";
 export { default as TransferReceiptScreen } from "./TransferReceiptScreen";
 export { default as ConfirmationScreen } from "./ConfirmationScreen";

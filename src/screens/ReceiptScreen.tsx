@@ -10,13 +10,13 @@ export default function ReceiptScreen({ onBack }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
   const { flow } = useAppPrefs();
-  const amount = formatCurrency(flow.successAmount ?? "580.00");
-  const amountSpoken = formatCurrencySpoken(flow.successAmount ?? "580.00");
+  const amount = formatCurrency(flow.successAmount ?? "0.00");
+  const amountSpoken = formatCurrencySpoken(flow.successAmount ?? "0.00");
   const rows = flow.successDetails.length
     ? flow.successDetails
     : [
-        { label: "Recipient", value: "Ricky Martin" },
-        { label: "Number", value: "Ac no. 8050530XXX" },
+        { label: "Recipient", value: "Unknown recipient" },
+        { label: "Number", value: "Unknown number" },
         { label: "Reference", value: "AYA-2609-7K8X" },
         { label: "Date & time", value: "Today, 3:02 PM" },
         { label: "Status", value: "Completed" },

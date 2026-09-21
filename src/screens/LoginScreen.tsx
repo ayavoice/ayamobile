@@ -4,9 +4,6 @@ import {
   AppText,
   BrandLogo,
   Button,
-  Icon,
-  IconWell,
-  PinInput,
   Screen,
   ScreenFooter,
   ScreenHeader,
@@ -15,83 +12,26 @@ import {
 import { DECORATIVE_A11Y } from "../lib/currency";
 import { fonts, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
-const PIN_LENGTH = 4;
 const PHONE_LENGTH = 9;
 
 type Props = {
-  onNext: () => void;
+  onNext: (phone: string) => void;
   onBack: () => void;
   onForgotPin: () => void;
   onSignup: () => void;
 };
 
-type Step = "phone" | "pin";
-
 export default function LoginScreen({ onNext, onBack, onForgotPin, onSignup }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
-  const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [phoneTouched, setPhoneTouched] = useState(false);
-  const [pin, setPin] = useState("");
 
   const phoneValid = phone.length === PHONE_LENGTH;
   const phoneError =
     phoneTouched && !phoneValid
       ? `Enter all ${PHONE_LENGTH} digits of your phone number.`
       : undefined;
-
-  const onPinChange = (next: string) => {
-    setPin(next);
-    if (next.length !== PIN_LENGTH) return;
-    setTimeout(onNext, 300);
-  };
-
-  if (step === "pin") {
-    return (
-      <Screen scroll>
-        <ScreenHeader
-          onBack={() => {
-            setPin("");
-            setStep("phone");
-          }}
-        />
-
-        <View style={styles.pinBody}>
-          <View {...DECORATIVE_A11Y}>
-            <IconWell backgroundColor={colors.washPurple} size={56} radius={20}>
-              <Icon name="lock-closed" size={26} color={colors.text} />
-            </IconWell>
-          </View>
-
-          <AppText variant="labelLG" align="center" heading={1}>
-            Enter your PIN
-          </AppText>
-
-          <PinInput
-            length={PIN_LENGTH}
-            value={pin}
-            onChangeText={onPinChange}
-            autoFocus
-            accessibilityLabel="Login PIN"
-          />
-
-          <Pressable
-            onPress={onForgotPin}
-            accessibilityRole="button"
-            role="button"
-            accessibilityLabel="Forgot PIN?"
-            hitSlop={8}
-            style={styles.forgotPin}
-          >
-            <AppText variant="bodySM" color={colors.text} importantForAccessibility="no">
-              Forgot PIN?
-            </AppText>
-          </Pressable>
-        </View>
-      </Screen>
-    );
-  }
 
   return (
     <Screen scroll>
@@ -105,7 +45,7 @@ export default function LoginScreen({ onNext, onBack, onForgotPin, onSignup }: P
           Welcome back
         </AppText>
         <AppText variant="bodyMD" align="center" color={colors.textSecondary}>
-          Enter your phone number to continue.
+          Enter your phone number and Aya will text you a code to sign in.
         </AppText>
       </View>
 
@@ -125,9 +65,28 @@ export default function LoginScreen({ onNext, onBack, onForgotPin, onSignup }: P
       </View>
 
       <ScreenFooter>
-        <Button onPress={() => setStep("pin")} disabled={!phoneValid} accessibilityLabel="Continue">
-          Continue
+        <Button
+          onPress={() => onNext(phone)}
+          disabled={!phoneValid}
+          accessibilityLabel="Send verification code"
+        >
+          Send code
         </Button>
+        <Pressable
+          onPress={onForgotPin}
+          accessibilityRole="button"
+          role="button"
+          accessibilityLabel="Trouble signing in"
+          hitSlop={8}
+          style={styles.footerLink}
+        >
+          <AppText variant="bodySM" color={colors.textSecondary} importantForAccessibility="no">
+            Trouble signing in?{" "}
+          </AppText>
+          <AppText variant="bodySM" color={colors.text} style={styles.footerLinkStrong} importantForAccessibility="no">
+            Get help
+          </AppText>
+        </Pressable>
         <Pressable
           onPress={onSignup}
           accessibilityRole="button"
@@ -172,17 +131,6 @@ function createStyles(colors: Palette) {
     },
     footerLinkStrong: {
       fontFamily: fonts.body.bold,
-    },
-    pinBody: {
-      alignItems: "center" as const,
-      paddingHorizontal: spacing.screenX,
-      paddingTop: spacing.xl,
-      gap: spacing.xl,
-    },
-    forgotPin: {
-      minHeight: 44,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
     },
   };
 }

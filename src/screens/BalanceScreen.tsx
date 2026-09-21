@@ -10,22 +10,26 @@ import {
 } from "../components/ui";
 import { useAppPrefs } from "../context/AppPrefs";
 import { DECORATIVE_A11Y, formatCurrency, formatCurrencySpoken } from "../lib/currency";
+import type { UssdResult } from "@aya/automator";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; result?: UssdResult | null };
 
-export default function BalanceScreen({ onBack }: Props) {
+export default function BalanceScreen({ onBack, result }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
   const { flow, accessibility } = useAppPrefs();
   const [revealed, setRevealed] = useState(false);
 
-  const amount = flow.successAmount ?? formatCurrency(2648.34);
+  const realBalance =
+    result?.status === "completed" && result.balanceMinor != null
+      ? formatCurrency(result.balanceMinor / 100)
+      : null;
+  const amount = realBalance ?? flow.successAmount ?? formatCurrency(2648.34);
   const amountSpoken = formatCurrencySpoken(amount);
   const wallet =
     flow.successDetails.find((d) => d.label === "Wallet")?.value ?? "MTN MoMo";
-  const reference =
-    flow.successDetails.find((d) => d.label === "Reference")?.value ?? "—";
+  const reference = result?.reference ?? "—";
 
   return (
     <Screen>

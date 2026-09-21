@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type ImageSourcePropType,
   type ImageStyle,
   type TextStyle,
   type ViewStyle,
@@ -37,6 +38,7 @@ import type { FlowId } from "../content/flows";
 import { SERVICES } from "../content/services";
 import { formatCurrency, formatCurrencySpoken, DECORATIVE_A11Y } from "../lib/currency";
 import type { ScreenId } from "../navigation/types";
+import { initials, type AyaContact } from "../services/contacts";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type BannerIllustration = "voice" | "gift" | "trophy" | "speaker";
@@ -277,7 +279,12 @@ function BannerArt({ kind }: { kind: BannerIllustration }) {
 type Props = {
   onNav: (screen: ScreenId) => void;
   onStartFlow: (flow: FlowId) => void;
+  /** Real device contacts (empty on web / when permission denied). */
+  quickSend: AyaContact[];
+  onQuickSend: (contact: AyaContact) => void;
 };
+
+type QuickItem = { name: string; image?: ImageSourcePropType; contact?: AyaContact };
 
 const RECIPIENTS = [
   { name: "Sonya", image: brandImages.sonya },
@@ -286,7 +293,7 @@ const RECIPIENTS = [
   { name: "Sourabh", image: brandImages.sourabh },
 ];
 
-const QUICK_SEND = [
+const QUICK_SEND: QuickItem[] = [
   { name: "Sonya", image: brandImages.sonya },
   { name: "Mansi", image: brandImages.mansi },
   { name: "Palak", image: brandImages.palak },
@@ -422,7 +429,7 @@ function tintColor(tint: LastAction["tint"], colors: Palette) {
   return colors.washPurple;
 }
 
-export default function HomeScreen({ onNav, onStartFlow }: Props) {
+export default function HomeScreen({ onNav, onStartFlow, quickSend, onQuickSend }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createHomeStyles);
   const [selectedSend, setSelectedSend] = useState("Mansi");
@@ -431,6 +438,9 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
   const balanceSpoken = formatCurrencySpoken(HOME_BALANCE);
   const serviceCount = SERVICES.length;
   const visibleActions = LAST_ACTIONS.slice(0, LAST_ACTIONS_PREVIEW);
+  const quickItems: QuickItem[] = quickSend.length
+    ? quickSend.slice(0, 6).map((c) => ({ name: c.name, contact: c }))
+    : QUICK_SEND;
 
   return (
     <Screen style={styles.root} safeBottom={false}>
@@ -713,13 +723,13 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
           style={styles.quickHead}
           accessible
           accessibilityRole="header"
-          accessibilityLabel={`Quick send, ${QUICK_SEND.length} contacts`}
+          accessibilityLabel={`Quick send, ${quickItems.length} contacts`}
         >
           <AppText variant="headingSM" heading={2} importantForAccessibility="no">
             Quick send{" "}
           </AppText>
           <AppText variant="headingSM" color={colors.text} importantForAccessibility="no">
-            {QUICK_SEND.length}
+            {quickItems.length}
           </AppText>
         </View>
         <ScrollView
@@ -728,28 +738,37 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
           contentContainerStyle={styles.hRow}
           accessibilityRole="list"
           role="list"
-          accessibilityLabel={`Quick send, ${QUICK_SEND.length} contacts`}
+          accessibilityLabel={`Quick send, ${quickItems.length} contacts`}
         >
-          {QUICK_SEND.map((person, index) => {
+          {quickItems.map((person, index) => {
             const selected = person.name === selectedSend;
             return (
               <View key={person.name} role="listitem">
                 <Pressable
                   onPress={() => {
                     setSelectedSend(person.name);
-                    onStartFlow("transfer");
+                    if (person.contact) onQuickSend(person.contact);
+                    else onStartFlow("transfer");
                   }}
                   accessibilityRole="button"
                   role="button"
                   accessible
-                  accessibilityLabel={`Quick send to ${person.name}, ${index + 1} of ${QUICK_SEND.length}`}
+                  accessibilityLabel={`Quick send to ${person.name}, ${index + 1} of ${quickItems.length}`}
                   accessibilityHint="Starts a voice transfer to this contact"
                   accessibilityState={{ selected }}
                   aria-selected={selected}
                   style={styles.quickItem}
                 >
                   <View {...DECORATIVE_A11Y}>
-                    <Avatar source={person.image} size={58} />
+                    {person.contact ? (
+                      <View style={[styles.quickInitials, { backgroundColor: colors.washPurple }]}>
+                        <Text style={[styles.quickInitialsText, { color: colors.text }]}>
+                          {initials(person.contact.name)}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Avatar source={person.image} size={58} />
+                    )}
                     <AppText variant="caption" numberOfLines={1} style={styles.quickName}>
                       {person.name}
                     </AppText>
@@ -1088,6 +1107,17 @@ function createHomeStyles(colors: Palette): HomeStyleSheet {
     minHeight: 88,
     alignItems: "center",
     gap: 6,
+  },
+  quickInitials: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickInitialsText: {
+    fontSize: 20,
+    fontWeight: "700",
   },
   quickName: {
     textAlign: "center",

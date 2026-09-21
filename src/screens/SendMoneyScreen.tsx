@@ -11,14 +11,16 @@ import { AppText, Avatar, Button, Icon, Screen, ScreenFooter } from "../componen
 import NotificationsModal from "../components/NotificationsModal";
 import { brandImages } from "../content/brand";
 import { useAppPrefs } from "../context/AppPrefs";
+import { useAyaSpeech } from "../hooks/useAyaSpeech";
 import { formatCurrencySpoken } from "../lib/currency";
+import { speakOrAlert } from "../lib/voice-unavailable";
 import { fonts, spacing, useColors } from "../theme";
 
 type Props = { onSend: () => void; onBack: () => void };
 
 function recipientFrom(details: { label: string; value: string }[]) {
-  const name = details.find((d) => d.label === "To")?.value ?? "Ricky Martin";
-  const number = details.find((d) => d.label === "Number")?.value ?? "Ac no. 8050530XXX";
+  const name = details.find((d) => d.label === "To")?.value ?? "Unknown recipient";
+  const number = details.find((d) => d.label === "Number")?.value ?? "Unknown number";
   return { name, number };
 }
 
@@ -37,11 +39,12 @@ function sanitizeAmount(raw: string) {
 
 export default function SendMoneyScreen({ onSend, onBack }: Props) {
   const colors = useColors();
-  const { flow } = useAppPrefs();
+  const { flow, language, accessibility } = useAppPrefs();
+  const { speakLocalized, stop } = useAyaSpeech();
   const inputRef = useRef<RNTextInput>(null);
   const recipient = useMemo(() => recipientFrom(flow.details), [flow.details]);
   const initialAmount = useMemo(
-    () => flow.confirmHero.replace(/[^0-9.]/g, "") || "580.00",
+    () => flow.confirmHero.replace(/[^0-9.]/g, "") || "",
     [flow.confirmHero],
   );
   const [amount, setAmount] = useState(initialAmount);
@@ -51,6 +54,12 @@ export default function SendMoneyScreen({ onSend, onBack }: Props) {
     const t = setTimeout(() => inputRef.current?.focus(), 250);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    if (accessibility.screenReader) return;
+    void speakOrAlert(speakLocalized, flow.readAloud, language, onBack);
+    return () => stop();
+  }, [flow.readAloud, language, accessibility.screenReader, speakLocalized, stop, onBack]);
 
   const canSend = Number(amount) > 0;
   const amountSpoken = formatCurrencySpoken(amount || "0");
@@ -111,23 +120,44 @@ export default function SendMoneyScreen({ onSend, onBack }: Props) {
               {recipient.number}
             </AppText>
           </View>
-          <Pressable
-            onPress={onBack}
-            accessibilityRole="button"
-            role="button"
-            accessibilityLabel="Change recipient"
-            accessibilityHint="Goes back to change who receives the money"
-            hitSlop={8}
-          >
-            <AppText
-              variant="labelXS"
-              color={colors.textSubtle}
-              style={styles.change}
-              importantForAccessibility="no"
+          <View style={styles.recipientLinks}>
+            <Pressable
+              onPress={() => {
+                void speakOrAlert(speakLocalized, flow.readAloud, language, onBack);
+              }}
+              accessibilityRole="button"
+              role="button"
+              accessibilityLabel="Hear this again"
+              accessibilityHint="Replays the spoken summary of this transfer"
+              hitSlop={8}
             >
-              Change
-            </AppText>
-          </Pressable>
+              <AppText
+                variant="labelXS"
+                color={colors.textSubtle}
+                style={styles.change}
+                importantForAccessibility="no"
+              >
+                Hear again
+              </AppText>
+            </Pressable>
+            <Pressable
+              onPress={onBack}
+              accessibilityRole="button"
+              role="button"
+              accessibilityLabel="Change recipient"
+              accessibilityHint="Goes back to change who receives the money"
+              hitSlop={8}
+            >
+              <AppText
+                variant="labelXS"
+                color={colors.textSubtle}
+                style={styles.change}
+                importantForAccessibility="no"
+              >
+                Change
+              </AppText>
+            </Pressable>
+          </View>
         </View>
 
         <Pressable
@@ -203,6 +233,11 @@ const styles = StyleSheet.create({
   },
   recipientInfo: {
     alignItems: "center",
+  },
+  recipientLinks: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.lg,
   },
   name: {
     marginTop: spacing.md,

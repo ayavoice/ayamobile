@@ -1,5 +1,7 @@
+import type { FlowId as SharedFlowId } from "@aya/shared";
+
 export type AppLanguage = "tw" | "ee" | "en";
-export type FlowId = "transfer" | "balance" | "airtime";
+export type FlowId = SharedFlowId;
 
 export type FlowDetail = { label: string; value: string };
 
@@ -343,10 +345,219 @@ const AIRTIME: Record<AppLanguage, FlowContent> = {
   },
 };
 
+const DATA: Record<AppLanguage, FlowContent> = {
+  tw: {
+    intentLabel: "BUY DATA",
+    listenHint: "Say the data bundle you need in Akan/Twi",
+    utterance: {
+      languageLabel: LANG_LABEL.tw,
+      transcript: "Me pɛ sɛ me tɔ data GH₵20",
+      gloss: "I want to buy GH₵20 data",
+    },
+    details: [
+      { label: "Amount", value: "GH₵20.00" },
+      { label: "For", value: "Your number" },
+      { label: "Network", value: "MTN" },
+      { label: "Type", value: "Data bundle" },
+    ],
+    confirmLead: "You are about to buy",
+    confirmHero: "GH₵20.00",
+    confirmTarget: "data bundle for your MTN number",
+    confirmMeta: "Self top-up · MTN",
+    readAloud:
+      "Wore betua GH₵20 data bundle ma wò MTN number. Ka continue anaa cancel.",
+    processingLabel: "Buying GH₵20 MTN data",
+    processingStep: "USSD sandbox · data bundle…",
+    successTitle: "Data purchased!",
+    successAmount: "GH₵20.00",
+    successSubtitle: "Data bundle added to your MTN number",
+    successDetails: [
+      { label: "For", value: "Your MTN number" },
+      { label: "Amount", value: "GH₵20.00" },
+      { label: "Reference", value: "AYA-2609-DT4K" },
+      { label: "Date & time", value: "7 Sep 2026, 9:41am" },
+      { label: "Status", value: "Successful" },
+    ],
+    receiptAvailable: true,
+  },
+  ee: {
+    intentLabel: "BUY DATA",
+    listenHint: "Say the data bundle you need in Ewe",
+    utterance: {
+      languageLabel: LANG_LABEL.ee,
+      transcript: "Medi be maƒle data GH₵20",
+      gloss: "I want to buy GH₵20 data",
+    },
+    details: [
+      { label: "Amount", value: "GH₵20.00" },
+      { label: "For", value: "Your number" },
+      { label: "Network", value: "MTN" },
+      { label: "Type", value: "Data bundle" },
+    ],
+    confirmLead: "You are about to buy",
+    confirmHero: "GH₵20.00",
+    confirmTarget: "data bundle for your MTN number",
+    confirmMeta: "Self top-up · MTN",
+    readAloud:
+      "Èle GH₵20 data bundle ƒle ge na wò MTN number. Gblɔ continue alo cancel.",
+    processingLabel: "Buying GH₵20 MTN data",
+    processingStep: "USSD sandbox · data bundle…",
+    successTitle: "Data purchased!",
+    successAmount: "GH₵20.00",
+    successSubtitle: "Data bundle added to your MTN number",
+    successDetails: [
+      { label: "For", value: "Your MTN number" },
+      { label: "Amount", value: "GH₵20.00" },
+      { label: "Reference", value: "AYA-2609-DT4K" },
+      { label: "Date & time", value: "7 Sep 2026, 9:41am" },
+      { label: "Status", value: "Successful" },
+    ],
+    receiptAvailable: true,
+  },
+  en: {
+    intentLabel: "BUY DATA",
+    listenHint: "Say the data bundle you need",
+    utterance: {
+      languageLabel: LANG_LABEL.en,
+      transcript: "Buy GH₵20 data for me",
+      gloss: "Buy a GH₵20 data bundle for my number",
+    },
+    details: [
+      { label: "Amount", value: "GH₵20.00" },
+      { label: "For", value: "Your number" },
+      { label: "Network", value: "MTN" },
+      { label: "Type", value: "Data bundle" },
+    ],
+    confirmLead: "You are about to buy",
+    confirmHero: "GH₵20.00",
+    confirmTarget: "data bundle for your MTN number",
+    confirmMeta: "Self top-up · MTN",
+    readAloud:
+      "You are about to buy GH₵20 data for your MTN number. Say continue or cancel.",
+    processingLabel: "Buying GH₵20 MTN data",
+    processingStep: "USSD sandbox · data bundle…",
+    successTitle: "Data purchased!",
+    successAmount: "GH₵20.00",
+    successSubtitle: "Data bundle added to your MTN number",
+    successDetails: [
+      { label: "For", value: "Your MTN number" },
+      { label: "Amount", value: "GH₵20.00" },
+      { label: "Reference", value: "AYA-2609-DT4K" },
+      { label: "Date & time", value: "7 Sep 2026, 9:41am" },
+      { label: "Status", value: "Successful" },
+    ],
+    receiptAvailable: true,
+  },
+};
+
+const BILL: Record<AppLanguage, FlowContent> = {
+  tw: {
+    intentLabel: "PAY BILL",
+    listenHint: "Say the bill you want to pay in Akan/Twi",
+    utterance: {
+      languageLabel: LANG_LABEL.tw,
+      transcript: "Me pɛ sɛ me tua ECG bill GH₵120",
+      gloss: "I want to pay a GH₵120 ECG bill",
+    },
+    details: [
+      { label: "Amount", value: "GH₵120.00" },
+      { label: "Biller", value: "ECG" },
+      { label: "Type", value: "Electricity" },
+      { label: "Network", value: "MTN" },
+    ],
+    confirmLead: "You are about to pay",
+    confirmHero: "GH₵120.00",
+    confirmTarget: "towards ECG",
+    confirmMeta: "Electricity bill · MTN MoMo",
+    readAloud: "Wo betua GH₵120 ECG bill. Ka continue anaa cancel.",
+    processingLabel: "Paying GH₵120 to ECG",
+    processingStep: "USSD sandbox · bill payment…",
+    successTitle: "Bill paid!",
+    successAmount: "GH₵120.00",
+    successSubtitle: "Your ECG bill has been paid.",
+    successDetails: [
+      { label: "Biller", value: "ECG" },
+      { label: "Amount", value: "GH₵120.00" },
+      { label: "Reference", value: "AYA-2609-ECG7" },
+      { label: "Date & time", value: "7 Sep 2026, 9:41am" },
+      { label: "Status", value: "Successful" },
+    ],
+    receiptAvailable: true,
+  },
+  ee: {
+    intentLabel: "PAY BILL",
+    listenHint: "Say the bill you want to pay in Ewe",
+    utterance: {
+      languageLabel: LANG_LABEL.ee,
+      transcript: "Medi be matua ECG bill GH₵120",
+      gloss: "I want to pay a GH₵120 ECG bill",
+    },
+    details: [
+      { label: "Amount", value: "GH₵120.00" },
+      { label: "Biller", value: "ECG" },
+      { label: "Type", value: "Electricity" },
+      { label: "Network", value: "MTN" },
+    ],
+    confirmLead: "You are about to pay",
+    confirmHero: "GH₵120.00",
+    confirmTarget: "towards ECG",
+    confirmMeta: "Electricity bill · MTN MoMo",
+    readAloud: "Èle GH₵120 ECG bill tua ge. Gblɔ continue alo cancel.",
+    processingLabel: "Paying GH₵120 to ECG",
+    processingStep: "USSD sandbox · bill payment…",
+    successTitle: "Bill paid!",
+    successAmount: "GH₵120.00",
+    successSubtitle: "Your ECG bill has been paid.",
+    successDetails: [
+      { label: "Biller", value: "ECG" },
+      { label: "Amount", value: "GH₵120.00" },
+      { label: "Reference", value: "AYA-2609-ECG7" },
+      { label: "Date & time", value: "7 Sep 2026, 9:41am" },
+      { label: "Status", value: "Successful" },
+    ],
+    receiptAvailable: true,
+  },
+  en: {
+    intentLabel: "PAY BILL",
+    listenHint: "Say the bill you want to pay",
+    utterance: {
+      languageLabel: LANG_LABEL.en,
+      transcript: "Pay my GH₵120 ECG bill",
+      gloss: "Pay a GH₵120 electricity bill to ECG",
+    },
+    details: [
+      { label: "Amount", value: "GH₵120.00" },
+      { label: "Biller", value: "ECG" },
+      { label: "Type", value: "Electricity" },
+      { label: "Network", value: "MTN" },
+    ],
+    confirmLead: "You are about to pay",
+    confirmHero: "GH₵120.00",
+    confirmTarget: "towards ECG",
+    confirmMeta: "Electricity bill · MTN MoMo",
+    readAloud: "You are about to pay GH₵120 towards your ECG bill. Say continue or cancel.",
+    processingLabel: "Paying GH₵120 to ECG",
+    processingStep: "USSD sandbox · bill payment…",
+    successTitle: "Bill paid!",
+    successAmount: "GH₵120.00",
+    successSubtitle: "Your ECG bill has been paid.",
+    successDetails: [
+      { label: "Biller", value: "ECG" },
+      { label: "Amount", value: "GH₵120.00" },
+      { label: "Reference", value: "AYA-2609-ECG7" },
+      { label: "Date & time", value: "7 Sep 2026, 9:41am" },
+      { label: "Status", value: "Successful" },
+    ],
+    receiptAvailable: true,
+  },
+};
+
 const FLOW_MAP: Record<FlowId, Record<AppLanguage, FlowContent>> = {
   transfer: TRANSFER,
   balance: BALANCE,
   airtime: AIRTIME,
+  data: DATA,
+  bill: BILL,
 };
 
 export function getFlowContent(flow: FlowId, language: AppLanguage): FlowContent {

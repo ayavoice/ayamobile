@@ -11,23 +11,43 @@ import {
 import { brandImages } from "../content/brand";
 import { useAppPrefs } from "../context/AppPrefs";
 import { DECORATIVE_A11Y, formatCurrency, formatCurrencySpoken } from "../lib/currency";
+import { referenceFromResult } from "../lib/ussdMissions";
+import type { UssdResult } from "@aya/automator";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
-type Props = { onHome: () => void; onTransferMore: () => void; onBack: () => void };
+type Props = {
+  onHome: () => void;
+  onTransferMore: () => void;
+  onBack: () => void;
+  result?: UssdResult | null;
+};
 
-export default function TransferReceiptScreen({ onHome, onTransferMore, onBack }: Props) {
+export default function TransferReceiptScreen({ onHome, onTransferMore, onBack, result }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
-  const { flow } = useAppPrefs();
+  const { flow, draft } = useAppPrefs();
 
-  const name = flow.details.find((d) => d.label === "To")?.value ?? "Ricky Martin";
-  const number = flow.details.find((d) => d.label === "Number")?.value ?? "Ac no. 8050530XXX";
-  const amount = formatCurrency(flow.successAmount ?? "580.00");
-  const amountSpoken = formatCurrencySpoken(flow.successAmount ?? "580.00");
+  const name =
+    flow.details.find((d) => d.label === "To")?.value ??
+    draft?.recipient?.name ??
+    "Unknown recipient";
+  const rawPhone = draft?.recipient?.phone ?? "";
+  const number =
+    flow.details.find((d) => d.label === "Number")?.value ??
+    (rawPhone
+      ? rawPhone.startsWith("+") || rawPhone.startsWith("233")
+        ? rawPhone
+        : `+233 ${rawPhone}`
+      : "Unknown number");
+  const amount = formatCurrency(draft?.slots.amountMinor ?? flow.successAmount ?? "0.00");
+  const amountSpoken = formatCurrencySpoken(draft?.slots.amountMinor ?? flow.successAmount ?? "0.00");
   const reference =
-    flow.successDetails.find((d) => d.label === "Reference")?.value ?? "AYA-2609-7K8X";
+    referenceFromResult(result) ??
+    flow.successDetails.find((d) => d.label === "Reference")?.value ??
+    "AYA-2609-7K8X";
   const when =
-    flow.successDetails.find((d) => d.label === "Date & time")?.value ?? "Today, 3:02 PM";
+    flow.successDetails.find((d) => d.label === "Date & time")?.value ??
+    (result?.at ? new Date(result.at).toLocaleString() : "Today, 3:02 PM");
 
   const details = [
     { label: "To", value: name },

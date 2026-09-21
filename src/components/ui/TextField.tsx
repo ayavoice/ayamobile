@@ -19,6 +19,7 @@ type TextFieldProps = {
   autoCapitalize?: TextInputProps["autoCapitalize"];
   autoFocus?: boolean;
   maxLength?: number;
+  secureTextEntry?: boolean;
   helper?: string;
   error?: string;
   onBlur?: () => void;
@@ -35,6 +36,7 @@ export default function TextField({
   autoCapitalize = "sentences",
   autoFocus,
   maxLength,
+  secureTextEntry,
   helper,
   error,
   onBlur,
@@ -90,6 +92,7 @@ export default function TextField({
           autoCapitalize={autoCapitalize}
           autoFocus={autoFocus}
           maxLength={maxLength}
+          secureTextEntry={secureTextEntry}
           onFocus={() => setFocused(true)}
           onBlur={() => {
             setFocused(false);
