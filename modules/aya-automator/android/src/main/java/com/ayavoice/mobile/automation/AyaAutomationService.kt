@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Intent
 import android.graphics.Path
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
@@ -19,18 +20,28 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Drives a real MTN MoMo USSD session on behalf of the app: dials the short
- * code, reads the USSD dialog window via accessibility events, taps/typeS by
- * label, and streams progress + the terminal screen back to JS.
+ * Drives a real MTN MoMo / Telecel / AT USSD session on behalf of the app:
+ * dials the short code, reads the USSD dialog window via accessibility events,
+ * taps/types by label, and streams progress + the terminal screen back to JS.
  *
  * The engine is intentionally generic: a USSD session is just an ordered list
  * of "click this label" / "type this value" steps supplied by the app layer.
  *
+ * Timing policy (fast + fail-fast, no blind sleeps):
+ *  - no fixed delay after actions; the engine polls at [DIAL_POLL_MS] and
+ *    advances as soon as a new screen has been stable across two samples;
+ *  - a strict step (menu selection / input) aborts with "no-change" if the
+ *    screen does not advance within [STEP_CHANGE_MS] — we never crawl on a
+ *    stale screen and never blind-tap the middle of a text-block menu;
+ *  - button clicks (dismiss/OK) and the manual-PIN wait are lenient.
+ *
  * Security invariants (enforced here, never relaxed):
  *  - the MoMo PIN is only ever written into the USSD dialog's edit field on the
  *    device, never logged, never emitted in events, never sent over the network;
+ *    editable field text is excluded from every screen capture for the same reason;
  *  - no transaction-shaping text (recipient, amount, PIN) is ever logged at debug
- *    or info level.
+ *    or info level. Only numbered *menu* screens (no editable field) are logged,
+ *    so the MTN/Telecel/AT digit maps can be tuned from the device.
  */
 class AyaAutomationService : AccessibilityService() {
 
@@ -80,7 +91,16 @@ class AyaAutomationService : AccessibilityService() {
   fun startMission(mission: UssdMission) {
     cancelled = false
     missionJob?.cancel()
-    missionJob = scope.launch { runMission(mission) }
+    missionJob = scope.launch {
+      try {
+        runMission(mission)
+      } catch (t: Throwable) {
+        // Never die silently: surface unexpected failures so the app can recover.
+        if (cancelled) return@launch
+        Log.w(Companion.TAG, "mission ${mission.id} crashed", t)
+        AutomatorBus.emitError("unknown", "Aya hit an unexpected error during the USSD session.")
+      }
+    }
   }
 
   fun cancelMission() {
@@ -114,57 +134,80 @@ class AyaAutomationService : AccessibilityService() {
     emitState(m.id, "dialed", "Calling *${m.shortCode}#", -1)
     dial(m.shortCode)
 
-    val first = waitForFirstDialog(m, deadline, stepsTaken)
+    val first = waitForFirstDialog(m, stepsTaken)
     if (cancelled) return
     if (first == null) {
-      AutomatorBus.emitError("no-dialog", "The *${m.shortCode}# dialog did not appear. Dial *${m.shortCode}# yourself and Aya will take over.")
+      AutomatorBus.emitError(
+        "no-dialog",
+        "The *${m.shortCode}# dialog did not appear. Dial *${m.shortCode}# yourself and Aya will take over.",
+      )
       return
     }
     lastSnap = first
-    checkTerminal(m, first)?.let { emitComplete(it); return }
+    logMenuIfPresent(first)
+    // The first screen is never a success: only hard failures abort here (e.g. a
+    // dead menu that already reports "Invalid selection"). Success words such as
+    // "your balance" can appear in the first screen and must not end a mission.
+    checkTerminal(m, first, allowSuccess = false)?.let { emitComplete(it); return }
     emitState(m.id, "menu", first.text, 0)
 
     var stepIndex = 0
     for (step in m.steps) {
       if (cancelled) return
+
+      // Refresh the reference snapshot so "before" is always the live screen.
       var snap = dialogSnapshot()
       if (snap == null) {
-        delay(500)
+        delay(300)
         snap = dialogSnapshot()
       }
       if (snap != null) {
         lastSnap = snap
-        checkTerminal(m, snap)?.let { emitComplete(it); return }
+        checkTerminal(m, snap, allowSuccess = stepIndex >= m.steps.lastIndex)
+          ?.let { emitComplete(it); return }
       }
+      val before = lastSnap?.signature
 
       when (step.action) {
         "await-dialog" -> {
           emitState(m.id, "awaiting-input", step.label, stepIndex)
           stepsTaken += step.label
           emitStep(step.label, stepIndex)
-          waitForChange(lastSnap?.signature, 15_000L, deadline)?.let { lastSnap = it }
+          waitForSettledChange(before, AWAIT_CHANGE_MS, deadline)
+            ?.takeIf { it.signature != before }
+            ?.let { lastSnap = it }
+          logMenuIfPresent(lastSnap)
         }
         "click" -> {
           emitState(m.id, "menu", step.label, stepIndex)
           performClickOrType(step)
           stepsTaken += step.label
           emitStep(step.label, stepIndex)
-          delay(900)
-          waitForChange(lastSnap?.signature, 12_000L, deadline)?.let { lastSnap = it }
+          val strict = hasLeadingDigit(step.fallback)
+          val changed = waitForSettledChange(before, STEP_CHANGE_MS, deadline)
+          if (!resolveChange(changed, before, step.label, strict)) return
+          if (changed != null) lastSnap = changed
+          logMenuIfPresent(lastSnap)
         }
         "input" -> {
           emitState(m.id, "awaiting-input", step.label, stepIndex)
           setTextAndSubmit(step.value.orEmpty())
           stepsTaken += step.label
           emitStep(step.label, stepIndex)
-          delay(900)
-          waitForChange(lastSnap?.signature, 12_000L, deadline)?.let { lastSnap = it }
+          val changed = waitForSettledChange(before, STEP_CHANGE_MS, deadline)
+          if (!resolveChange(changed, before, step.label, strict = true)) return
+          if (changed != null) lastSnap = changed
+          logMenuIfPresent(lastSnap)
         }
         "await-user-input" -> {
+          // Manual PIN: hand the screen back to the user, then wait for the
+          // post-PIN result screen (PIN prompt, then a *different* screen that
+          // follows it — the balance/authorization/processing reply).
           emit(mapOf("type" to "pin-required"))
           emitState(m.id, "awaiting-input", step.label, stepIndex)
           stepsTaken += step.label
-          waitForChange(lastSnap?.signature, 180_000L, deadline)?.let { lastSnap = it }
+          waitForPinResult(before, deadline)?.let { lastSnap = it }
+          logMenuIfPresent(lastSnap)
         }
         "done" -> {
           // fall through to final capture
@@ -175,7 +218,7 @@ class AyaAutomationService : AccessibilityService() {
 
     if (cancelled) return
     val finalSnap = dialogSnapshot() ?: lastSnap
-    val safeSnap = checkTerminal(m, finalSnap)
+    val safeSnap = checkTerminal(m, finalSnap, allowSuccess = true)
     if (safeSnap != null) {
       emitComplete(safeSnap)
     } else {
@@ -189,8 +232,8 @@ class AyaAutomationService : AccessibilityService() {
     }
   }
 
-  private suspend fun waitForFirstDialog(m: UssdMission, deadline: Long, stepsTaken: MutableList<String>): Snapshot? {
-    val firstDeadline = SystemClock.elapsedRealtime() + 18_000L
+  private suspend fun waitForFirstDialog(m: UssdMission, stepsTaken: MutableList<String>): Snapshot? {
+    val firstDeadline = SystemClock.elapsedRealtime() + FIRST_DIALOG_MS
     var redials = 0
     while (!cancelled) {
       val snap = dialogSnapshot()
@@ -210,35 +253,110 @@ class AyaAutomationService : AccessibilityService() {
     return null
   }
 
-  private suspend fun waitForChange(previousSignature: String?, timeoutMs: Long, deadline: Long): Snapshot? {
+  /**
+   * Polls until the visible screen becomes a stable signature *different* from
+   * [previousSignature] (seen twice across two consecutive samples, so
+   * transitional/loading overlays never count as progress). Returns the latest
+   * screen on timeout (possibly unchanged) so callers can decide strict/lenient.
+   */
+  private suspend fun waitForSettledChange(
+    previousSignature: String?,
+    timeoutMs: Long,
+    deadline: Long,
+  ): Snapshot? {
     val until = SystemClock.elapsedRealtime() + timeoutMs
-    var last: Snapshot? = null
+    var candidate: Snapshot? = null
     while (!cancelled) {
+      if (SystemClock.elapsedRealtime() >= until || SystemClock.elapsedRealtime() >= deadline) break
+      val snap = dialogSnapshot()
+      if (snap != null && (previousSignature == null || snap.signature != previousSignature)) {
+        if (candidate == null || candidate.signature != snap.signature) {
+          candidate = snap
+        } else {
+          return snap
+        }
+      } else {
+        candidate = null
+      }
+      delay(DIAL_POLL_MS)
+    }
+    return candidate
+  }
+
+  /**
+   * Manual-PIN wait: first screens to settle = the PIN prompt; then wait until a
+   * *different* screen follows it (the post-PIN reply). The user types on the OS
+   * USSD keyboard, never through Aya.
+   */
+  private suspend fun waitForPinResult(previousSignature: String?, deadline: Long): Snapshot? {
+    val until = SystemClock.elapsedRealtime() + PIN_WAIT_MS
+    var pinPrompt: String? = null
+    var candidate: Snapshot? = null
+    while (!cancelled) {
+      if (SystemClock.elapsedRealtime() >= until || SystemClock.elapsedRealtime() >= deadline) return candidate
       val snap = dialogSnapshot()
       if (snap != null) {
-        if (previousSignature == null || snap.signature != previousSignature) return snap
-        last = snap
+        val sig = snap.signature
+        if (pinPrompt == null) {
+          if (previousSignature == null || sig != previousSignature) pinPrompt = sig
+        } else if (sig != pinPrompt && sig != previousSignature) {
+          if (candidate == null || candidate.signature != sig) candidate = snap
+          else return snap
+        } else {
+          candidate = null
+        }
+      } else {
+        candidate = null
       }
-      if (SystemClock.elapsedRealtime() >= until || SystemClock.elapsedRealtime() >= deadline) return last
       delay(DIAL_POLL_MS)
     }
     return null
   }
 
-  private fun checkTerminal(m: UssdMission, snap: Snapshot?): Map<String, Any?>? {
+  private fun resolveChange(changed: Snapshot?, before: String?, label: String, strict: Boolean): Boolean {
+    if (strict && (changed == null)) {
+      AutomatorBus.emitError(
+        "no-change",
+        "The USSD screen did not advance after \"$label\". Dial *170# and try again.",
+      )
+      return false
+    }
+    return true
+  }
+
+  private fun hasLeadingDigit(s: String?): Boolean = s?.firstOrNull()?.isDigit() == true
+
+  private fun checkTerminal(m: UssdMission, snap: Snapshot?, allowSuccess: Boolean): Map<String, Any?>? {
     if (snap == null) return null
     val t = snap.text.lowercase()
     val failed =
       listOf("insufficient", "failed", "unsuccessful", "not been completed", "declined", "invalid")
     val success =
-      listOf("successfully", "successful", "completed", "confirmed", "your balance", "credited", "received")
+      listOf(
+        "successfully", "successful", "completed", "confirmed",
+        "your balance", "credited", "received",
+        "processe", // "Your request is being processed" / "Request processing"
+        "submitted", // "Transaction submitted."
+      )
     val isFailed = failed.any { t.contains(it) }
     val isSuccess =
       success.any { t.contains(it) } || (t.contains("balance") && (t.contains("ghs") || t.contains("gh\u00a2")))
-    if (!isFailed && !isSuccess) return null
+    // Failure words abort anywhere (the session is over); success words only
+    // count near/at the mission's final step so a first-screen keyword can't
+    // fake a "completed" and end the flow early.
+    if (isFailed) {
+      return resultMap(
+        sessionId = m.id,
+        status = "failed",
+        message = snap.text,
+        balanceMinor = null,
+        stepsTaken = null,
+      )
+    }
+    if (!allowSuccess || !isSuccess) return null
     return resultMap(
       sessionId = m.id,
-      status = if (isFailed) "failed" else "completed",
+      status = "completed",
       message = snap.text,
       balanceMinor = parseBalanceMinor(snap.text),
       stepsTaken = null,
@@ -327,12 +445,16 @@ class AyaAutomationService : AccessibilityService() {
   private fun readScreenText(): String? {
     val root = dialogRoot() ?: return null
     try {
-      val lines = LinkedHashSet<String>()
-      collectText(root, lines, 0)
-      return lines.filter { it.isNotBlank() }.joinToString("\n")
+      return textOf(root)
     } finally {
       root.recycle()
     }
+  }
+
+  private fun textOf(root: AccessibilityNodeInfo): String {
+    val lines = LinkedHashSet<String>()
+    collectText(root, lines, 0)
+    return lines.filter { it.isNotBlank() }.joinToString("\n")
   }
 
   private fun dialogRoot(): AccessibilityNodeInfo? {
@@ -369,6 +491,9 @@ class AyaAutomationService : AccessibilityService() {
 
   private fun collectText(node: AccessibilityNodeInfo, out: MutableSet<String>, depth: Int) {
     if (depth > 12 || out.size >= 120) return
+    // Never capture typed input (PIN/recipient/amount): editable fields are
+    // excluded from every screen snapshot, in whole or in part.
+    if (node.isEditable) return
     if (node.isVisibleToUser) {
       val text = node.text?.toString()?.trim()
       if (!text.isNullOrBlank()) out.add(collapseWhitespace(text))
@@ -385,18 +510,19 @@ class AyaAutomationService : AccessibilityService() {
     if (roots.isEmpty()) return
     val root = dialogRoot() ?: return
     try {
+      val fullText = textOf(root).lowercase()
       // Try each candidate matcher in order; fall back to typing the leading
-      // digit when the menu renders as a single text block (no clickable node).
+      // digit when the menu is a single text block (no clickable node).
       for (candidate in roots) {
         val matchLower = candidate.lowercase()
         val node = findNode(root, matchLower)
-        if (node != null && performClick(node)) return
+        if (node != null && isClickableTarget(node, fullText) && performClick(node)) return
 
         val leadingDigit = candidate.first().digitToIntOrNull()
         val edit = findEditable(root)
         if (leadingDigit != null && edit != null) {
           setTextTo(edit, leadingDigit.toString())
-          if (clickSubmit(root)) return
+          if (clickSubmit(root, fullText)) return
         }
       }
     } finally {
@@ -416,7 +542,7 @@ class AyaAutomationService : AccessibilityService() {
       if (!setTextTo(edit, value)) {
         Log.w(Companion.TAG, "setText failed — user may need to type manually")
       }
-      clickSubmit(root)
+      clickSubmit(root, textOf(root).lowercase())
     } finally {
       root.recycle()
     }
@@ -455,6 +581,20 @@ class AyaAutomationService : AccessibilityService() {
     return collapseWhitespace(node.contentDescription?.toString()?.trim().orEmpty())
   }
 
+  /**
+   * A node is only a valid click target if its label is a short, real button /
+   * option — never a node whose label is (part of) the whole dialog text. The
+   * system USSD menu is one giant TextView; clicking it taps the *center* of the
+   * menu and picks a random option. Parking-lot guard for that bug.
+   */
+  private fun isClickableTarget(node: AccessibilityNodeInfo, fullDialogText: String): Boolean {
+    val label = nodeLabel(node).lowercase()
+    if (label.isEmpty()) return false
+    if (label == fullDialogText) return false
+    if (label.length > MENU_BLOB_MAX) return false
+    return true
+  }
+
   private fun findEditable(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
     val stack = ArrayDeque<AccessibilityNodeInfo>()
     stack.add(root)
@@ -473,7 +613,16 @@ class AyaAutomationService : AccessibilityService() {
     var n = node
     var hops = 0
     while (n != null && hops++ < 5) {
-      if (n.isClickable) return n.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+      if (n.isClickable) {
+        val b = Rect()
+        n.getBoundsInScreen(b)
+        // A small clickable container (a menu row) is fine; a huge one (the
+        // whole dialog) would blind-tap the middle — tap the leaf instead.
+        if (!b.isEmpty && b.height() <= MAX_ROW_HEIGHT_PX) {
+          return n.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        }
+        return tapBounds(node)
+      }
       n = n.parent
     }
     return tapBounds(node)
@@ -491,17 +640,17 @@ class AyaAutomationService : AccessibilityService() {
     return ok
   }
 
-  private fun clickSubmit(root: AccessibilityNodeInfo): Boolean {
+  private fun clickSubmit(root: AccessibilityNodeInfo, fullText: String): Boolean {
     val candidates = listOf("send", "ok", "submit", "done", "yes", "confirm", "enter")
     for (c in candidates) {
       val node = findNode(root, c)
-      if (node != null && performClick(node)) return true
+      if (node != null && isClickableTarget(node, fullText) && performClick(node)) return true
     }
     return false
   }
 
   private fun tapBounds(node: AccessibilityNodeInfo): Boolean {
-    val bounds = android.graphics.Rect()
+    val bounds = Rect()
     node.getBoundsInScreen(bounds)
     if (bounds.isEmpty) return false
     return dispatchTap(bounds.centerX(), bounds.centerY())
@@ -512,6 +661,23 @@ class AyaAutomationService : AccessibilityService() {
     val stroke = GestureDescription.StrokeDescription(path, 0L, 60L)
     val gesture = GestureDescription.Builder().addStroke(stroke).build()
     return dispatchGesture(gesture, null, null)
+  }
+
+  /**
+   * Sanitized tuning aid: log only numbered *menu* screens that have no input
+   * field (never PIN/amount/phone prompts). Text like "MENU 1| Transfer Money ..."
+   * lets us correct the digit maps in ussdMissions.ts from a real device run.
+   */
+  private fun logMenuIfPresent(snap: Snapshot?) {
+    if (snap == null) return
+    if (!Regex("(^|\\n)\\s*\\d{1,2}\\.\\s").containsMatchIn(snap.text)) return
+    val root = dialogRoot() ?: return
+    try {
+      if (hasEditable(root)) return
+      Log.i(Companion.TAG, "MENU " + snap.text.replace('\n', ' '))
+    } finally {
+      root.recycle()
+    }
   }
 
   private fun parseBalanceMinor(text: String?): Long? {
@@ -527,6 +693,12 @@ class AyaAutomationService : AccessibilityService() {
 
   companion object {
     private const val TAG = "AyaAutomator"
-    private const val DIAL_POLL_MS = 350L
+    private const val DIAL_POLL_MS = 200L
+    private const val FIRST_DIALOG_MS = 8_000L
+    private const val STEP_CHANGE_MS = 8_000L
+    private const val AWAIT_CHANGE_MS = 10_000L
+    private const val PIN_WAIT_MS = 180_000L
+    private const val MENU_BLOB_MAX = 40
+    private const val MAX_ROW_HEIGHT_PX = 240
   }
 }

@@ -7,9 +7,9 @@ import type {
 import type { FlowId, MinorAmount, ParsedIntent } from "@aya/shared";
 
 /**
- * MTN MoMo USSD mission builders.
+ * Carrier USSD mission builders (MTN *170#, Telecel *110#, AT *110#).
  *
- * The native accessibility engine is a dumb executor; every MTN menu label,
+ * The native accessibility engine is a dumb executor; every menu label,
  * ordering choice and PIN policy decision lives in THIS file so that tuning the
  * flows is a JS reload — never a native rebuild.
  *
@@ -17,8 +17,14 @@ import type { FlowId, MinorAmount, ParsedIntent } from "@aya/shared";
  *   match    = the human label to click (exact/substring, case-insensitive)
  *   fallback = "N. <label>" — the leading digit is typed into the response
  *              field when the menu renders as a single text block (no clickable
- *              nodes). Digits are best-effort sequencing and are tuned on
- *              device.
+ *              nodes). Digits follow the real carrier menus and can be tuned on
+ *              device from the sanitized MENU… log.
+ *
+ * Flows (carrier menus observed from a real phone, Sept 2026):
+ *   MTN     *170#  1 Transfer Money · 2 MoMoPay & Pay Bill · 3 Airtime &
+ *                  Bundles · 4 Allow Cash-Out · 5 Financial Services · 6 My Wallet
+ *   Telecel *110#  1 Send Money · …
+ *   AT      *110#  1 Send Money · …
  */
 
 let seq = 0;
@@ -33,6 +39,11 @@ export function ghsInput(amountMinor: MinorAmount): string {
   const ghs = amountMinor / 100;
   const fixed = ghs.toFixed(2);
   return fixed.replace(/\.?0+$/, "").replace(/^$/, "0");
+}
+
+/** Random 4-digit transaction reference shown to MTN/Telecel/AT ("Aya-4821"). */
+export function randomReference(): string {
+  return `Aya-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 /**
@@ -53,6 +64,17 @@ export function referenceFromResult(
 
 export type PinSpec = { pinMode: UssdPinMode; pin?: string };
 
+/** Resolve a 10-digit Ghanaian number to its home carrier for flow routing. */
+export type CarrierId = "mtn" | "telecel" | "at";
+
+export function carrierForPhone(phoneDigits: string): CarrierId {
+  const p = phoneDigits.replace(/\D/g, "");
+  const tel = p.slice(0, 3);
+  if (["020", "050"].includes(tel)) return "telecel";
+  if (["026", "027", "056", "057"].includes(tel)) return "at";
+  return "mtn";
+}
+
 function mission(
   id: string,
   shortCode: string,
@@ -70,43 +92,30 @@ function mission(
   };
 }
 
-/** Dial *170# and read the MoMo main menu. Shared preamble for most flows. */
-const MOMO_MAIN_MENU: UssdMissionStep = {
-  action: "click",
-  label: "MoMo menu",
-  match: "momo",
-  fallback: "1. MoMo",
-};
-
 /**
- * *170# → "Your Balance".
+ * *170# → 6 My Wallet → 1 Check Balance → 1 MoMo Balance → PIN → done.
  * The balance screen ("Your balance is GH₵ …") is detected by the terminal
  * scanner and the parsed amount is returned in `result.balanceMinor`.
- *
- * Provisional menu position: "Your Balance" is option 1 on the classic MoMo
- * main menu. Tune `fallback` on device.
  */
 export function balanceMission(pinSpec: PinSpec = { pinMode: "manual" }): UssdMission {
   return mission(
     newMissionId("bal"),
     "170",
     [
-      MOMO_MAIN_MENU,
-      {
-        action: "click",
-        label: "Your balance",
-        match: "your balance",
-        fallback: "1. Your Balance",
-      },
-      { action: "await-dialog", label: "Reading balance", match: "balance" },
-      { action: "done", label: "Balance fetched", match: "balance" },
+      { action: "click", label: "My Wallet", match: "1. my wallet", fallback: "6. My Wallet" },
+      { action: "click", label: "Check balance", match: "1. check balance", fallback: "1. Check Balance" },
+      { action: "click", label: "MoMo balance", match: "1. momo balance", fallback: "1. MoMo Balance" },
+      pinStep(pinSpec),
+      { action: "done", label: "Balance fetched", match: "your balance" },
     ],
     pinSpec,
   );
 }
 
 /**
- * *170# → "Send Money" → recipient number → amount → confirm → PIN → done.
+ * MTN *170# → 1 Transfer Money → 1 MoMo User → recipient number → re-enter
+ * number (confirmation) → amount → reference ("Aya-####") → PIN → authorize
+ * (1) Yes → done ("your request is being processed…").
  * `recipientPhone` is the recipient's number WITHOUT the country code.
  */
 export function sendMission(
@@ -119,56 +128,82 @@ export function sendMission(
     newMissionId("send"),
     "170",
     [
-      MOMO_MAIN_MENU,
-      {
-        action: "click",
-        label: "Send money",
-        match: "send money",
-        fallback: "2. Send Money",
-      },
-      // MTN then asks who to send to: "MoMo user" vs bank/other networks.
-      {
-        action: "click",
-        label: "To Mobile Money user",
-        match: "to",
-        fallback: "1. Mobile Money user",
-      },
-      {
-        action: "input",
-        label: "Recipient number",
-        match: "number",
-        value: phone,
-      },
-      // Number → name confirmation screen ("Send to Saint Dannyyy?").
-      {
-        action: "click",
-        label: "Confirm recipient",
-        match: "confirm",
-        fallback: "1. Confirm",
-      },
-      {
-        action: "input",
-        label: "Amount in cedis",
-        match: "amount",
-        value: ghsInput(amountMinor),
-      },
-      {
-        action: "click",
-        label: "Confirm amount",
-        match: "confirm",
-        fallback: "1. Confirm",
-      },
+      { action: "click", label: "Transfer money", match: "1. transfer money", fallback: "1. Transfer Money" },
+      { action: "click", label: "To a MoMo user", match: "momo user", fallback: "1. MoMo User" },
+      { action: "input", label: "Recipient number", match: "number", value: phone },
+      { action: "input", label: "Confirm recipient number", match: "number", value: phone },
+      { action: "input", label: "Amount in cedis", match: "amount", value: ghsInput(amountMinor) },
+      { action: "input", label: "Add a reference", match: "reference", value: randomReference() },
       pinStep(pinSpec),
-      { action: "done", label: "Transaction sent", match: "successful" },
+      { action: "click", label: "Authorise transfer", match: "1. yes", fallback: "1. Yes" },
+      { action: "done", label: "Transaction sent", match: "processe" },
     ],
     pinSpec,
   );
 }
 
 /**
- * *170# → "Buy Airtime" → amount → confirm → PIN → done.
- * Airtime is bought for the authenticated number when `recipientPhone` is
- * absent, otherwise for `recipientPhone` (digit type + confirm tie-in).
+ * Telecel *110# → 1 Send Money → 1 Telecel Cash → number → amount → reference
+ * → PIN → (1) Confirm → done ("transaction submitted…").
+ * Built for future sender-awareness; routed today via `missionForFlow` only
+ * when the caller opts into a Telecel session.
+ */
+export function telecelTransferMission(
+  recipientPhone: string,
+  amountMinor: MinorAmount,
+  pinSpec: PinSpec,
+): UssdMission {
+  const phone = recipientPhone.replace(/\D/g, "");
+  return mission(
+    newMissionId("send"),
+    "110",
+    [
+      { action: "click", label: "Send money", match: "1. send money", fallback: "1. Send Money" },
+      { action: "click", label: "Telecel Cash user", match: "telecel cash", fallback: "1. Telecel Cash" },
+      { action: "input", label: "Recipient number", match: "number", value: phone },
+      { action: "input", label: "Amount in cedis", match: "amount", value: ghsInput(amountMinor) },
+      { action: "input", label: "Add a reference", match: "reference", value: randomReference() },
+      pinStep(pinSpec),
+      { action: "click", label: "Confirm transaction", match: "1. confirm", fallback: "1. Confirm" },
+      { action: "done", label: "Transaction submitted", match: "submitted" },
+    ],
+    pinSpec,
+  );
+}
+
+/**
+ * AT *110# → 1 Send Money → 1 AT User → number → amount → reference → PIN →
+ * (1) Yes → done ("request processing…").
+ * Built for future sender-awareness; routed today via `missionForFlow` only
+ * when the caller opts into an AT session.
+ */
+export function atTransferMission(
+  recipientPhone: string,
+  amountMinor: MinorAmount,
+  pinSpec: PinSpec,
+): UssdMission {
+  const phone = recipientPhone.replace(/\D/g, "");
+  return mission(
+    newMissionId("send"),
+    "110",
+    [
+      { action: "click", label: "Send money", match: "1. send money", fallback: "1. Send Money" },
+      { action: "click", label: "AT user", match: "at user", fallback: "1. AT User" },
+      { action: "input", label: "Recipient number", match: "number", value: phone },
+      { action: "input", label: "Amount in cedis", match: "amount", value: ghsInput(amountMinor) },
+      { action: "input", label: "Add a reference", match: "reference", value: randomReference() },
+      pinStep(pinSpec),
+      { action: "click", label: "Confirm transaction", match: "1. yes", fallback: "1. Yes" },
+      { action: "done", label: "Transaction sent", match: "processe" },
+    ],
+    pinSpec,
+  );
+}
+
+/**
+ * MTN *170# → 3 Airtime & Bundles → 1 Airtime → 1 Self / 2 Others → amount →
+ * PIN → close (OK) → done. Airtime is bought for the authenticated number when
+ * `recipientPhone` is absent, otherwise for `recipientPhone` (2 Others + number).
  */
 export function airtimeMission(
   amountMinor: MinorAmount,
@@ -176,23 +211,13 @@ export function airtimeMission(
   pinSpec: PinSpec,
 ): UssdMission {
   const steps: UssdMissionStep[] = [
-    MOMO_MAIN_MENU,
-    {
-      action: "click",
-      label: "Buy airtime",
-      match: "airtime",
-      fallback: "4. Buy Airtime",
-    },
+    { action: "click", label: "Airtime & bundles", match: "airtime & bundles", fallback: "3. Airtime & Bundles" },
+    { action: "click", label: "Airtime", match: "1. airtime", fallback: "1. Airtime" },
   ];
 
   if (recipientPhone) {
     steps.push(
-      {
-        action: "click",
-        label: "Airtime for another number",
-        match: "another number",
-        fallback: "2. Another number",
-      },
+      { action: "click", label: "Airtime for another number", match: "2. others", fallback: "2. Others" },
       {
         action: "input",
         label: "Airtime recipient number",
@@ -200,35 +225,22 @@ export function airtimeMission(
         value: recipientPhone.replace(/\D/g, ""),
       },
     );
+  } else {
+    steps.push({ action: "click", label: "Airtime for self", match: "1. self", fallback: "1. Self" });
   }
 
   steps.push(
-    {
-      action: "input",
-      label: "Airtime amount",
-      match: "amount",
-      value: ghsInput(amountMinor),
-    },
-    {
-      action: "click",
-      label: "Confirm airtime",
-      match: "confirm",
-      fallback: "1. Confirm",
-    },
+    { action: "input", label: "Airtime amount", match: "amount", value: ghsInput(amountMinor) },
     pinStep(pinSpec),
-    { action: "done", label: "Airtime sent", match: "successful" },
+    { action: "click", label: "Close", match: "ok", fallback: "1. Continue" },
+    { action: "done", label: "Airtime sent", match: "successfully" },
   );
 
   return mission(newMissionId("air"), "170", steps, pinSpec);
 }
 
 /**
- * PIN policy: `manual` (default) hands the dialog back to the user — Aya never
- * sees the PIN; `auto` fills it in-process from expo-secure-store (device-local
- * only, never logged/transmitted/spoken).
- */
-/**
- * Normalise a phone for the USSD prompt: MTN expects the 10-digit form
+ * Normalise a phone for the USSD prompt: carriers expect the 10-digit form
  * ("0241234567"). Accepts E.164 ("+233241234567"), "233…" or bare digits.
  */
 export function ussdPhone(raw: string): string {
@@ -243,6 +255,8 @@ export function ussdPhone(raw: string): string {
 /**
  * Builds the mission for whatever flow Aya is about to drive. Returns null
  * when the draft lacks what the flow needs or the flow isn't automatable yet.
+ * The sender is assumed to be an MTN line this round; receiver routing for
+ * Telecel/AT senders is wired through `telecelTransferMission`/`atTransferMission`.
  */
 export function missionForFlow(
   flow: FlowId,
