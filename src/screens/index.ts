@@ -13,6 +13,7 @@ export { default as ListeningScreen } from "./ListeningScreen";
 export { default as PayeeListScreen } from "./PayeeListScreen";
 export { default as NumberEntryScreen } from "./NumberEntryScreen";
 export { default as SendMoneyScreen } from "./SendMoneyScreen";
+export { default as AmountEntryScreen } from "./AmountEntryScreen";
 export { default as TransferReceiptScreen } from "./TransferReceiptScreen";
 export { default as ConfirmationScreen } from "./ConfirmationScreen";
 export { default as BiometricScreen } from "./BiometricScreen";

@@ -30,6 +30,7 @@ import {
   PayeeListScreen,
   NumberEntryScreen,
   SendMoneyScreen,
+  AmountEntryScreen,
   TransferReceiptScreen,
   ConfirmationScreen,
   BiometricScreen,
@@ -299,7 +300,8 @@ function AppNavigator() {
             });
             setActiveFlow(intent.flow);
             setPreselectedRecipient(null);
-            go(isTransfer ? "send-money" : "confirmation");
+            const needsAmount = intent.slots.amountMinor == null;
+            go(isTransfer ? "send-money" : needsAmount ? "amount-entry" : "confirmation");
           }}
           onBack={back}
         />
@@ -359,6 +361,19 @@ function AppNavigator() {
             go("biometric");
           }}
           onBack={back}
+        />
+      );
+      break;
+    case "amount-entry":
+      content = (
+        <AmountEntryScreen
+          onBack={back}
+          onSubmit={(amountMinor) => {
+            setDraft((prev) =>
+              prev ? { ...prev, slots: { ...prev.slots, amountMinor } } : prev,
+            );
+            go("confirmation");
+          }}
         />
       );
       break;

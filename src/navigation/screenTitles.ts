@@ -15,6 +15,7 @@ export const SCREEN_TITLES: Record<ScreenId, string> = {
   "payee-list": "Choose recipient",
   "enter-number": "Enter number",
   "send-money": "Send money",
+  "amount-entry": "Amount",
   "transfer-receipt": "Transfer receipt",
   confirmation: "Confirm",
   biometric: "Authenticate",

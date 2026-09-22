@@ -13,6 +13,7 @@ export type ScreenId =
   | "payee-list"
   | "enter-number"
   | "send-money"
+  | "amount-entry"
   | "transfer-receipt"
   | "confirmation"
   | "biometric"
