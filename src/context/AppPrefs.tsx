@@ -45,7 +45,9 @@ type AppPrefsValue = {
   setActiveFlow: (flow: FlowId) => void;
   /** Last utterance Aya understood; drives dynamic screen copy. */
   draft: VoiceDraft | null;
-  setDraft: (draft: VoiceDraft | null) => void;
+  setDraft: (
+    draft: VoiceDraft | null | ((prev: VoiceDraft | null) => VoiceDraft | null),
+  ) => void;
   flow: FlowContent;
   textScale: number;
   highContrast: boolean;

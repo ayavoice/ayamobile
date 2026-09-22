@@ -350,7 +350,17 @@ function AppNavigator() {
       ) : null;
       break;
     case "send-money":
-      content = <SendMoneyScreen onSend={() => go("biometric")} onBack={back} />;
+      content = (
+        <SendMoneyScreen
+          onSend={(amountMinor) => {
+            setDraft((prev) =>
+              prev ? { ...prev, slots: { ...prev.slots, amountMinor } } : prev,
+            );
+            go("biometric");
+          }}
+          onBack={back}
+        />
+      );
       break;
     case "transfer-receipt":
       content = (

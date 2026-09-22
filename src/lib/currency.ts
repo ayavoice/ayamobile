@@ -34,6 +34,33 @@ export function formatCurrencySpoken(value: number | string): string {
   return `${negative ? "minus " : ""}${withCommas} Ghana cedis and ${decimals} pesewas`;
 }
 
+/**
+ * Normalises free-typed amount input: digits + a single dot, max 2 decimal
+ * places, leading "." becomes "0."; everything else is stripped.
+ */
+export function normalizeAmountInput(raw: string): string {
+  let next = raw.replace(/[^0-9.]/g, "");
+  const firstDot = next.indexOf(".");
+  if (firstDot !== -1) {
+    next =
+      next.slice(0, firstDot + 1) + next.slice(firstDot + 1).replace(/\./g, "");
+    const [whole, decimals = ""] = next.split(".");
+    next = `${whole}.${decimals.slice(0, 2)}`;
+  }
+  if (next.startsWith(".")) next = `0${next}`;
+  return next;
+}
+
+/**
+ * Parses a sanitized amount string ("5", "5.5") into pesewas (minor units).
+ * Returns null for non-positive or invalid input.
+ */
+export function parseGhsToMinor(amount: string): number | null {
+  const numeric = Number(normalizeAmountInput(amount));
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return Math.round(numeric * 100);
+}
+
 /** Prefer spoken currency when the visible string looks like a money amount. */
 export function speakMaybeCurrency(value: string): string {
   if (/[₵$€£]|GH₵/i.test(value) && /\d/.test(value)) {

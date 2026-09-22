@@ -12,29 +12,16 @@ import NotificationsModal from "../components/NotificationsModal";
 import { brandImages } from "../content/brand";
 import { useAppPrefs } from "../context/AppPrefs";
 import { useAyaSpeech } from "../hooks/useAyaSpeech";
-import { formatCurrencySpoken } from "../lib/currency";
+import { formatCurrencySpoken, normalizeAmountInput, parseGhsToMinor } from "../lib/currency";
 import { speakOrAlert } from "../lib/voice-unavailable";
 import { fonts, spacing, useColors } from "../theme";
 
-type Props = { onSend: () => void; onBack: () => void };
+type Props = { onSend: (amountMinor: number) => void; onBack: () => void };
 
 function recipientFrom(details: { label: string; value: string }[]) {
   const name = details.find((d) => d.label === "To")?.value ?? "Unknown recipient";
   const number = details.find((d) => d.label === "Number")?.value ?? "Unknown number";
   return { name, number };
-}
-
-function sanitizeAmount(raw: string) {
-  let next = raw.replace(/[^0-9.]/g, "");
-  const firstDot = next.indexOf(".");
-  if (firstDot !== -1) {
-    next =
-      next.slice(0, firstDot + 1) + next.slice(firstDot + 1).replace(/\./g, "");
-    const [whole, decimals = ""] = next.split(".");
-    next = `${whole}.${decimals.slice(0, 2)}`;
-  }
-  if (next.startsWith(".")) next = `0${next}`;
-  return next;
 }
 
 export default function SendMoneyScreen({ onSend, onBack }: Props) {
@@ -61,7 +48,7 @@ export default function SendMoneyScreen({ onSend, onBack }: Props) {
     return () => stop();
   }, [flow.readAloud, language, accessibility.screenReader, speakLocalized, stop, onBack]);
 
-  const canSend = Number(amount) > 0;
+  const amountMinor = parseGhsToMinor(amount);
   const amountSpoken = formatCurrencySpoken(amount || "0");
 
   return (
@@ -176,7 +163,7 @@ export default function SendMoneyScreen({ onSend, onBack }: Props) {
           <TextInput
             ref={inputRef}
             value={amount}
-            onChangeText={(text) => setAmount(sanitizeAmount(text))}
+            onChangeText={(text) => setAmount(normalizeAmountInput(text))}
             keyboardType="decimal-pad"
             autoFocus
             returnKeyType="done"
@@ -193,8 +180,8 @@ export default function SendMoneyScreen({ onSend, onBack }: Props) {
 
       <ScreenFooter>
         <Button
-          onPress={onSend}
-          disabled={!canSend}
+          onPress={() => onSend(amountMinor ?? 0)}
+          disabled={amountMinor == null}
           variant="purple"
           accessibilityHint="Confirms amount and continues to authentication"
         >
