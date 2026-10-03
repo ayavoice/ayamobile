@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Pressable, TextInput, View, type TextInput as RNTextInput } from "react-native";
+import { Platform, Pressable, TextInput, View, type TextInput as RNTextInput } from "react-native";
 import PinDots from "./PinDots";
 import { usePaletteStyles } from "../../theme";
 
@@ -52,6 +52,11 @@ export default function PinInput({
         editable={editable}
         caretHidden
         textContentType={textContentType}
+        autoComplete={
+          textContentType === "oneTimeCode"
+            ? Platform.select({ android: "sms-otp", default: "one-time-code" })
+            : undefined
+        }
         style={styles.hiddenInput}
         accessibilityLabel={accessibilityLabel ?? "PIN"}
         accessibilityValue={{

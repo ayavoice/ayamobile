@@ -102,57 +102,6 @@ export const LOCAL_GAMES: LocalGame[] = [
   },
 ];
 
-export type LearnPathId = "think" | "safety" | "scam-words" | "practice";
-
-export type LearnPath = {
-  id: LearnPathId;
-  title: string;
-  subtitle: string;
-  icon: IonName;
-  wash: "purple" | "blue" | "yellow" | "green";
-  cta: string;
-  playable: boolean;
-};
-
-export const LEARN_PATHS: LearnPath[] = [
-  {
-    id: "think",
-    title: "Think first",
-    subtitle: "Pause, check, then send money",
-    icon: "bulb-outline",
-    wash: "yellow",
-    cta: "Learn",
-    playable: false,
-  },
-  {
-    id: "safety",
-    title: "Stay safe",
-    subtitle: "PIN privacy and MoMo habits",
-    icon: "shield-checkmark-outline",
-    wash: "green",
-    cta: "Learn",
-    playable: false,
-  },
-  {
-    id: "scam-words",
-    title: "Scam words",
-    subtitle: "Spot pressure words before you tap",
-    icon: "warning-outline",
-    wash: "blue",
-    cta: "Practice",
-    playable: true,
-  },
-  {
-    id: "practice",
-    title: "Practice play",
-    subtitle: "Try Ama's Market Day and more",
-    icon: "game-controller-outline",
-    wash: "purple",
-    cta: "Play",
-    playable: true,
-  },
-];
-
 export type ScamWordRound = {
   id: string;
   message: string;

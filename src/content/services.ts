@@ -24,6 +24,14 @@ export type ServiceItem = {
 
 export const SERVICES: ServiceItem[] = [
   {
+    icon: "chatbubbles-outline",
+    label: "Customer Support",
+    hint: "Report a problem by voice",
+    actionHint: "Starts a voice support request",
+    wash: "green",
+    flow: "support",
+  },
+  {
     icon: "paper-plane",
     label: "Send Money",
     hint: "Say who and how much",

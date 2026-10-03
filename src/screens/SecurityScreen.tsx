@@ -1,13 +1,30 @@
-import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppText, Card, Icon, IconWell, Screen, ScreenHeader, Toggle } from "../components/ui";
+import { useAppPrefs } from "../context/AppPrefs";
+import { authenticateWithBiometrics, biometricsAvailable } from "../lib/biometrics";
 import { DECORATIVE_A11Y } from "../lib/currency";
+import { speak } from "../lib/speech";
 import { colors, radii, spacing } from "../theme";
 
 type Props = { onBack: () => void };
 
 export default function SecurityScreen({ onBack }: Props) {
-  const [biometric, setBiometric] = useState(true);
+  const { appLock, setAppLock } = useAppPrefs();
+  const biometric = appLock?.biometric ?? false;
+
+  const setBiometric = async (on: boolean) => {
+    if (!on) {
+      setAppLock({ biometric: false });
+      return;
+    }
+    if (!(await biometricsAvailable())) {
+      speak("Set up fingerprint or face unlock in your phone's settings first.");
+      return;
+    }
+    if (await authenticateWithBiometrics("Use biometrics to open Aya")) {
+      setAppLock({ biometric: true });
+    }
+  };
 
   return (
     <Screen background={colors.white} scroll>
@@ -40,19 +57,19 @@ export default function SecurityScreen({ onBack }: Props) {
               </IconWell>
             </View>
             <View style={styles.flex} importantForAccessibility="no">
-              <AppText variant="labelMD" importantForAccessibility="no">Biometric authentication</AppText>
+              <AppText variant="labelMD" importantForAccessibility="no">Biometrics</AppText>
               <AppText variant="caption" importantForAccessibility="no">
-                Fingerprint, face, or device unlock after confirmation
+                Optional. Use your phone's fingerprint or face unlock to open Aya and approve.
               </AppText>
             </View>
             <Toggle
               value={biometric}
               onValueChange={setBiometric}
-              accessibilityLabel="Biometric authentication"
+              accessibilityLabel="Biometrics"
               accessibilityHint={
                 biometric
-                  ? "On. Money moves only after private device auth"
-                  : "Off. Less secure"
+                  ? "On. Aya opens with your biometrics"
+                  : "Off. You use your MoMo PIN instead"
               }
             />
           </View>
@@ -60,30 +77,30 @@ export default function SecurityScreen({ onBack }: Props) {
             accessible
             accessibilityLabel={
               biometric
-                ? "Biometrics ON, money moves only after private device auth"
-                : "Biometrics OFF, less secure"
+                ? "On. Aya opens with your biometrics."
+                : "Off. You use your MoMo PIN instead."
             }
             style={[
               styles.status,
-              { backgroundColor: biometric ? colors.successSurface : colors.surfaceWarningSoft },
+              { backgroundColor: biometric ? colors.successSurface : colors.surface },
             ]}
           >
             <View {...DECORATIVE_A11Y}>
               <Icon
-                name={biometric ? "checkmark-circle" : "warning"}
+                name={biometric ? "checkmark-circle" : "keypad"}
                 size={16}
-                color={biometric ? colors.success : colors.warningDark}
+                color={biometric ? colors.success : colors.text}
               />
             </View>
             <AppText
               variant="caption"
-              color={biometric ? colors.success : colors.warningDark}
+              color={biometric ? colors.success : colors.text}
               style={styles.statusText}
               importantForAccessibility="no"
             >
               {biometric
-                ? "Biometrics ON, money moves only after private device auth"
-                : "Biometrics OFF, less secure"}
+                ? "On. Aya opens with your biometrics."
+                : "Off. You use your MoMo PIN instead."}
             </AppText>
           </View>
         </Card>

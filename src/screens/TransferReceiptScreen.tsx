@@ -1,40 +1,46 @@
 import { Pressable, View } from "react-native";
-import {
-  AppText,
-  Avatar,
-  Button,
-  Icon,
-  Screen,
-  ScreenFooter,
-  ScreenHeader,
-} from "../components/ui";
+import { AppText, Avatar, Button, Icon, Screen, ScreenFooter, ScreenHeader } from "../components/ui";
 import { brandImages } from "../content/brand";
+import { transferFee } from "../content/send";
 import { useAppPrefs } from "../context/AppPrefs";
 import { DECORATIVE_A11Y, formatCurrency, formatCurrencySpoken } from "../lib/currency";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
-type Props = { onHome: () => void; onTransferMore: () => void; onBack: () => void };
+type Props = {
+  onHome: () => void;
+  onTransferMore: () => void;
+  onBack: () => void;
+  onViewShopSpeaker?: () => void;
+};
 
-export default function TransferReceiptScreen({ onHome, onTransferMore, onBack }: Props) {
+export default function TransferReceiptScreen({ onHome, onTransferMore, onBack, onViewShopSpeaker }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
-  const { flow } = useAppPrefs();
+  const { flow, scanPayee, transferRecipient } = useAppPrefs();
 
   const name = flow.details.find((d) => d.label === "To")?.value ?? "Ricky Martin";
   const number = flow.details.find((d) => d.label === "Number")?.value ?? "Ac no. 8050530XXX";
   const amount = formatCurrency(flow.successAmount ?? "580.00");
   const amountSpoken = formatCurrencySpoken(flow.successAmount ?? "580.00");
-  const reference =
-    flow.successDetails.find((d) => d.label === "Reference")?.value ?? "AYA-2609-7K8X";
-  const when =
-    flow.successDetails.find((d) => d.label === "Date & time")?.value ?? "Today, 3:02 PM";
+  const reference = flow.successDetails.find((d) => d.label === "Reference")?.value ?? "AYA-2609-7K8X";
+  const when = flow.successDetails.find((d) => d.label === "Date & time")?.value ?? "Today, 3:02 PM";
+
+  const sentAmount = Number(String(flow.successAmount ?? "580").replace(/[^0-9.]/g, "")) || 0;
+  const fee = scanPayee ? 0 : transferFee(sentAmount, transferRecipient?.kind ?? "wallet");
 
   const details = [
     { label: "To", value: name },
     { label: "Account", value: number },
+    { label: "Fee", value: fee > 0 ? formatCurrency(fee) : "Free" },
     { label: "Reference", value: reference },
     { label: "Date", value: when },
   ];
+
+  const avatar = scanPayee
+    ? brandImages.pratik
+    : !transferRecipient || transferRecipient.name === "Ricky Martin"
+      ? brandImages.ricky
+      : null;
 
   return (
     <Screen>
@@ -50,11 +56,7 @@ export default function TransferReceiptScreen({ onHome, onTransferMore, onBack }
             Sent
           </AppText>
 
-          <View
-            accessible
-            accessibilityLabel={`Amount sent, ${amountSpoken}`}
-            style={styles.amountBlock}
-          >
+          <View accessible accessibilityLabel={`Amount sent, ${amountSpoken}`} style={styles.amountBlock}>
             <AppText
               variant="displayLG"
               align="center"
@@ -66,17 +68,26 @@ export default function TransferReceiptScreen({ onHome, onTransferMore, onBack }
             </AppText>
           </View>
 
-          <View
-            style={styles.recipient}
-            accessible
-            accessibilityLabel={`Sent to ${name}`}
-          >
-            <Avatar source={brandImages.ricky} size={36} />
+          <View style={styles.recipient} accessible accessibilityLabel={`Sent to ${name}`}>
+            {avatar ? <Avatar source={avatar} size={36} /> : null}
             <AppText variant="bodySM" color={colors.textSecondary} importantForAccessibility="no">
               to {name}
             </AppText>
           </View>
         </View>
+
+        {scanPayee ? (
+          <View
+            style={styles.speakerBanner}
+            accessibilityRole="text"
+            accessibilityLabel={`Announced on ${name} loudspeaker`}
+          >
+            <Icon name="volume-high-outline" size={18} color={colors.success} />
+            <AppText variant="caption" color={colors.text} style={styles.speakerText}>
+              Announced on shop loudspeaker
+            </AppText>
+          </View>
+        ) : null}
 
         <View
           style={styles.details}
@@ -104,18 +115,33 @@ export default function TransferReceiptScreen({ onHome, onTransferMore, onBack }
         <Button onPress={onHome} variant="purple" accessibilityLabel="Done, back to home">
           Done
         </Button>
-        <Pressable
-          onPress={onTransferMore}
-          accessibilityRole="button"
-          role="button"
-          accessibilityLabel="Transfer again"
-          accessibilityHint="Starts another transfer"
-          style={styles.secondary}
-        >
-          <AppText variant="labelSM" color={colors.textMuted} importantForAccessibility="no">
-            Transfer again
-          </AppText>
-        </Pressable>
+        {scanPayee && onViewShopSpeaker ? (
+          <Pressable
+            onPress={onViewShopSpeaker}
+            accessibilityRole="button"
+            role="button"
+            accessibilityLabel="Open shop loudspeaker"
+            accessibilityHint="Shows the merchant screen where this payment was announced"
+            style={styles.secondary}
+          >
+            <AppText variant="labelSM" color={colors.textMuted} importantForAccessibility="no">
+              Hear on shop speaker
+            </AppText>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={onTransferMore}
+            accessibilityRole="button"
+            role="button"
+            accessibilityLabel="Transfer again"
+            accessibilityHint="Starts another transfer"
+            style={styles.secondary}
+          >
+            <AppText variant="labelSM" color={colors.textMuted} importantForAccessibility="no">
+              Transfer again
+            </AppText>
+          </Pressable>
+        )}
       </ScreenFooter>
     </Screen>
   );
@@ -159,6 +185,19 @@ function createStyles(colors: Palette) {
       alignItems: "center" as const,
       gap: spacing.sm,
       marginTop: spacing.xs,
+    },
+    speakerBanner: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: radii.xl,
+      backgroundColor: colors.successSurface,
+    },
+    speakerText: {
+      flex: 1,
+      minWidth: 0,
     },
     details: {
       backgroundColor: colors.surfaceCard,

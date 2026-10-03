@@ -1,153 +1,61 @@
-import { useState } from "react";
-import { Pressable, View } from "react-native";
-import { AppText, Button, Screen, ScreenFooter } from "../components/ui";
-import { spacing, usePaletteStyles, type Palette } from "../theme";
+import { useEffect } from "react";
+import { View } from "react-native";
+import { AppText, BrandLogo, Button, Screen, ScreenFooter } from "../components/ui";
+import { WELCOME_LINES } from "../content/onboarding";
+import { DECORATIVE_A11Y } from "../lib/currency";
+import { speak } from "../lib/speech";
+import { spacing, useColors, usePaletteStyles } from "../theme";
 
-function slidesFor(): {
-  title: string;
-  body: string;
-}[] {
-  return [
-    {
-      title: "Speak naturally",
-      body: "Talk to Aya just like you would talk to a friend. No reading or typing needed.",
-    },
-    {
-      title: "Use your language",
-      body: "Akan/Twi, Ewe, or English, Aya understands you in the language you are most comfortable with.",
-    },
-    {
-      title: "Authenticate privately",
-      body: "Use your fingerprint or face to confirm. You never speak your PIN to Aya.",
-    },
-  ];
-}
+type Props = { onNext: () => void; onLogin: () => void };
 
-type Props = { onNext: () => void };
+const TAGLINE = "Send money and pay by voice, in Twi or English.";
 
-export default function OnboardingScreen({ onNext }: Props) {
-  const styles = usePaletteStyles(createOnboardingStyles);
-  const [slide, setSlide] = useState(0);
-  const SLIDES = slidesFor();
-  const s = SLIDES[slide];
+export default function OnboardingScreen({ onNext, onLogin }: Props) {
+  const colors = useColors();
+  const styles = usePaletteStyles(createStyles);
+
+  useEffect(() => {
+    speak(`${WELCOME_LINES.map((l) => l.text).join(" ")} ${TAGLINE}`);
+  }, []);
 
   return (
-    <Screen scroll>
-      <View style={styles.header}>
-        {slide < 2 && (
-          <Button
-            onPress={onNext}
-            variant="ghost"
-            style={styles.skipButton}
-            accessibilityLabel="Skip onboarding"
-          >
-            <AppText variant="caption">Skip</AppText>
-          </Button>
-        )}
-      </View>
-
-      <View style={styles.body}>
+    <Screen>
+      <View style={styles.hero}>
+        <View {...DECORATIVE_A11Y}>
+          <BrandLogo height={56} />
+        </View>
         <View style={styles.copy}>
           <AppText variant="displayMD" align="center" heading={1}>
-            {s.title}
+            Akwaaba!
           </AppText>
-          <AppText variant="bodyLG" align="center" style={styles.bodyText}>
-            {s.body}
+          <AppText variant="bodyLG" align="center" color={colors.textSecondary}>
+            {TAGLINE}
           </AppText>
         </View>
       </View>
 
-      <View
-        style={styles.dots}
-        accessibilityRole="tablist"
-        role="tablist"
-        accessibilityLabel="Onboarding slides"
-      >
-        {SLIDES.map((_, i) => (
-          <Pressable
-            key={i}
-            onPress={() => setSlide(i)}
-            accessibilityRole="tab"
-            role="tab"
-            accessibilityState={{ selected: i === slide }}
-            aria-selected={i === slide}
-            accessibilityLabel={`Slide ${i + 1} of ${SLIDES.length}, ${SLIDES[i].title}`}
-            style={styles.dotHit}
-          >
-            <View style={[styles.dot, i === slide ? styles.dotActive : styles.dotIdle]} />
-          </Pressable>
-        ))}
-      </View>
-
       <ScreenFooter>
-        {slide < 2 ? (
-          <Button onPress={() => setSlide(slide + 1)} style={styles.nextButton}>
-            Next
-          </Button>
-        ) : (
-          <Button onPress={onNext}>Get started</Button>
-        )}
+        <Button onPress={onNext}>Get started</Button>
+        <Button variant="ghost" onPress={onLogin}>
+          I already have an account
+        </Button>
       </ScreenFooter>
     </Screen>
   );
 }
 
-function createOnboardingStyles(colors: Palette) {
+function createStyles() {
   return {
-    header: {
-      flexDirection: "row" as const,
-      justifyContent: "flex-end" as const,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
-      paddingBottom: spacing.md,
-    },
-    skipButton: {
-      alignSelf: "flex-end" as const,
-      minHeight: 44,
-      backgroundColor: "transparent",
-      paddingHorizontal: spacing.xs,
-      paddingVertical: 4,
-    },
-    body: {
+    hero: {
       flex: 1,
       alignItems: "center" as const,
       justifyContent: "center" as const,
-      paddingHorizontal: spacing["4xl"],
-      gap: spacing["2xl"],
+      paddingHorizontal: spacing.screenX,
+      gap: spacing["3xl"],
     },
     copy: {
-      alignItems: "center" as const,
-    },
-    bodyText: {
-      marginTop: 14,
-    },
-    dots: {
-      flexDirection: "row" as const,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-      paddingBottom: spacing.sm,
-      flexShrink: 0,
-    },
-    dotHit: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: "center" as const,
-      justifyContent: "center" as const,
-    },
-    dot: {
-      height: 8,
-      borderRadius: 4,
-    },
-    dotActive: {
-      width: 28,
-      backgroundColor: colors.purple,
-    },
-    dotIdle: {
-      width: 8,
-      backgroundColor: colors.trackIdle,
-    },
-    nextButton: {
-      borderRadius: 9999,
+      gap: spacing.md,
+      maxWidth: 340,
     },
   };
 }

@@ -1,209 +1,285 @@
-import { useState } from "react";
-import { AccessibilityInfo, Platform, Pressable, View } from "react-native";
-import type { ComponentProps } from "react";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { AppText, Button, Icon, Screen, ScreenFooter, ScreenHeader } from "../components/ui";
-import { DECORATIVE_A11Y } from "../lib/currency";
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import { Animated, Easing, Pressable, ScrollView, View } from "react-native";
+import { AppText, Icon, Screen, ScreenHeader } from "../components/ui";
+import MtnPinEntry from "../components/MtnPinEntry";
+import { AUTH_LINES, decideAuth, parseAmount, pinReasonText } from "../content/authorization";
+import { useAppPrefs } from "../context/AppPrefs";
+import { authenticateWithBiometrics } from "../lib/biometrics";
+import { formatCurrencySpoken, speakMaybeCurrency } from "../lib/currency";
+import { vibrate } from "../lib/haptics";
+import { speak } from "../lib/speech";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
-type Method = "finger" | "face" | "device";
-type IonName = ComponentProps<typeof Ionicons>["name"];
 type Props = { onSuccess: () => void; onBack: () => void };
+type Stage = "owner" | "checking" | "pin" | "approved";
 
-const METHODS: { id: Method; icon: IonName; label: string }[] = [
-  { id: "finger", icon: "finger-print", label: "Fingerprint" },
-  { id: "face", icon: "scan", label: "Face unlock" },
-  { id: "device", icon: "keypad", label: "Passcode" },
-];
-
-function announce(message: string) {
-  if (Platform.OS === "web") return;
-  AccessibilityInfo.announceForAccessibility(message);
-}
+const HANDOFF_MS = 700;
+const ORB = 128;
 
 export default function BiometricScreen({ onSuccess, onBack }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
-  const [method, setMethod] = useState<Method>("finger");
-  const [scanning, setScanning] = useState(false);
-  const [status, setStatus] = useState("");
+  const {
+    flow,
+    activeFlow,
+    accessibility,
+    preApproval,
+    spentToday,
+    recordSpend,
+    scanPayee,
+    transferRecipient,
+    appLock,
+  } = useAppPrefs();
+  const biometricOn = appLock?.biometric ?? true;
+  const movesMoney = activeFlow !== "balance";
+  const amount = movesMoney ? parseAmount(flow.confirmHero) : 0;
 
-  const active = METHODS.find((m) => m.id === method)!;
-  const confirmLabel = scanning
-    ? `Verifying ${active.label}`
-    : `Touch to confirm with ${active.label}`;
+  const [decision] = useState(() =>
+    !biometricOn
+      ? ({ mode: "pin", reason: "no-pre-approval" } as const)
+      : movesMoney
+        ? decideAuth({ amount, savedRecipient: transferRecipient?.saved ?? !scanPayee, spentToday, preApproval })
+        : ({ mode: "fingerprint" } as const),
+  );
+  const withinLimits = movesMoney && decision.mode === "fingerprint";
 
-  const speak = (message: string) => {
-    setStatus(message);
-    announce(message);
+  const hero = movesMoney ? flow.confirmHero : flow.confirmTarget;
+  const sub = movesMoney ? flow.confirmTarget : flow.confirmMeta;
+  const summaryLabel = movesMoney
+    ? `${flow.intentLabel}. ${formatCurrencySpoken(flow.confirmHero)} ${flow.confirmTarget}. ${speakMaybeCurrency(flow.confirmMeta)}`
+    : `${flow.intentLabel}. ${flow.confirmTarget}. ${flow.confirmMeta}`;
+
+  const [stage, setStage] = useState<Stage>(biometricOn ? "owner" : "pin");
+
+  useEffect(() => {
+    speak(biometricOn ? AUTH_LINES.owner : AUTH_LINES.pin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const confirmOwner = async () => {
+    if (stage !== "owner") return;
+    setStage("checking");
+    const ok = await authenticateWithBiometrics("Use biometrics to approve");
+    if (!ok) {
+      vibrate("failed", accessibility.haptics);
+      setStage("owner");
+      return;
+    }
+    vibrate("understood", accessibility.haptics);
+    if (decision.mode === "pin") {
+      setStage("pin");
+      speak(AUTH_LINES.pin);
+    } else {
+      setStage("approved");
+    }
   };
 
-  const selectMethod = (id: Method) => {
-    const selected = METHODS.find((m) => m.id === id)!;
-    setMethod(id);
-    speak(
-      `${selected.label} selected. Next, activate Touch to confirm with ${selected.label}.`,
+  const pinApproved = useCallback(() => setStage("approved"), []);
+
+  useEffect(() => {
+    if (stage !== "approved") return;
+    vibrate("success", accessibility.haptics);
+    speak(AUTH_LINES.approved);
+    if (movesMoney) recordSpend(amount);
+    const t = setTimeout(onSuccess, HANDOFF_MS);
+    return () => clearTimeout(t);
+    // run once on approval
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (stage !== "checking") return;
+    const loop = Animated.loop(
+      Animated.timing(pulse, { toValue: 1, duration: 1200, easing: Easing.out(Easing.quad), useNativeDriver: false }),
     );
-  };
+    loop.start();
+    return () => {
+      loop.stop();
+      pulse.setValue(0);
+    };
+  }, [stage, pulse]);
 
-  const handleAuth = () => {
-    if (scanning) return;
-    setScanning(true);
-    speak(`Verifying ${active.label}`);
-    setTimeout(onSuccess, 1600);
+  const orbs: Record<Exclude<Stage, "pin">, { icon: ComponentProps<typeof Icon>["name"]; bg: string; fg: string }> = {
+    owner: { icon: "finger-print", bg: colors.washPurple, fg: colors.purple },
+    checking: { icon: "finger-print", bg: colors.washPurple, fg: colors.purple },
+    approved: { icon: "checkmark", bg: colors.successSurface, fg: colors.success },
   };
+  const orbStage = stage === "pin" ? "owner" : stage;
+  const orb = orbs[orbStage];
+  const status: Record<Exclude<Stage, "pin">, string> = {
+    owner: "Use biometrics to confirm it's you",
+    checking: "Checking…",
+    approved: "Approved",
+  };
+  const detail =
+    stage === "approved"
+      ? movesMoney
+        ? "Sending now"
+        : ""
+      : withinLimits
+        ? "Within your everyday limit. No PIN needed."
+        : "";
 
   return (
     <Screen>
-      <ScreenHeader title="Authorize" onBack={onBack} />
+      <ScreenHeader title="Approve" onBack={onBack} />
 
-      <View style={styles.body}>
-        <View style={styles.intro}>
-          <AppText variant="headingSM" align="center" heading={2}>
-            Confirm it’s you
-          </AppText>
-          <AppText variant="bodySM" align="center" color={colors.textMuted}>
-            Fingerprint, face, or passcode
-          </AppText>
-        </View>
-
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View
-          style={styles.methods}
-          accessibilityRole="radiogroup"
-          role="radiogroup"
-          accessibilityLabel="Choose an authentication method"
+          accessible
+          accessibilityRole="summary"
+          role="summary"
+          accessibilityLabel={summaryLabel}
+          style={styles.summary}
         >
-          {METHODS.map((m, index) => {
-            const on = method === m.id;
-            return (
-              <Pressable
-                key={m.id}
-                onPress={() => selectMethod(m.id)}
-                accessibilityRole="radio"
-                role="radio"
-                accessibilityState={{ checked: on, selected: on }}
-                aria-checked={on}
-                {...(Platform.OS === "web"
-                  ? ({
-                      "aria-posinset": index + 1,
-                      "aria-setsize": METHODS.length,
-                    } as object)
-                  : null)}
-                accessibilityLabel={m.label}
-                accessibilityHint="Selects this method. Then activate Touch to confirm to authenticate."
-                style={[styles.method, on ? styles.methodOn : styles.methodOff]}
-              >
-                <View {...DECORATIVE_A11Y}>
-                  <Icon name={m.icon} size={26} color={colors.text} />
-                </View>
-                <AppText variant="labelXS" align="center" importantForAccessibility="no">
-                  {m.label}
-                </AppText>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View
-          role="status"
-          accessibilityLiveRegion="polite"
-          aria-live="polite"
-          aria-atomic={true}
-          style={styles.srOnly}
-        >
-          <AppText>{status}</AppText>
-        </View>
-
-        <Pressable
-          onPress={handleAuth}
-          accessibilityRole="button"
-          role="button"
-          accessibilityLabel={confirmLabel}
-          accessibilityHint="Authenticates using the selected method"
-          accessibilityState={{ busy: scanning }}
-          aria-busy={scanning}
-          style={[styles.auth, scanning ? styles.authOn : styles.authOff]}
-        >
-          <View {...DECORATIVE_A11Y}>
-            <Icon
-              name={active.icon}
-              size={48}
-              color={scanning ? colors.successBright : colors.text}
-            />
-          </View>
+          <AppText variant="overline" color={colors.textMuted} importantForAccessibility="no">
+            {flow.intentLabel}
+          </AppText>
           <AppText
-            variant="labelXS"
-            color={scanning ? colors.successBright : colors.textSubtle}
+            variant="displayLG"
+            color={colors.text}
+            align="center"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+            style={styles.hero}
             importantForAccessibility="no"
           >
-            {scanning ? "Verifying…" : "Touch to confirm"}
+            {hero}
           </AppText>
-        </Pressable>
-      </View>
+          <AppText
+            variant="labelMD"
+            color={colors.text}
+            align="center"
+            numberOfLines={1}
+            importantForAccessibility="no"
+          >
+            {sub}
+          </AppText>
+          {movesMoney ? (
+            <AppText variant="caption" color={colors.textMuted} numberOfLines={1} importantForAccessibility="no">
+              {flow.confirmMeta}
+            </AppText>
+          ) : null}
+        </View>
 
-      <ScreenFooter>
-        <Button onPress={onBack} variant="ghost">
-          Cancel
-        </Button>
-      </ScreenFooter>
+        {stage === "pin" && decision.mode === "pin" ? (
+          <View style={styles.stage} accessibilityLiveRegion="polite">
+            {decision.reason !== "no-pre-approval" ? (
+              <View style={styles.reason}>
+                <Icon name="shield-half" size={14} color={colors.text} />
+                <AppText variant="labelXS" color={colors.text}>
+                  {pinReasonText(decision.reason, preApproval)}
+                </AppText>
+              </View>
+            ) : null}
+            <MtnPinEntry onApproved={pinApproved} />
+          </View>
+        ) : (
+          <View style={styles.stage} accessibilityLiveRegion="polite">
+            <Pressable
+              onPress={confirmOwner}
+              disabled={stage !== "owner"}
+              accessibilityRole="button"
+              role="button"
+              accessibilityLabel={status[orbStage]}
+              accessibilityState={{ disabled: stage !== "owner", busy: stage === "checking" }}
+              style={({ pressed }) => [styles.orbWrap, pressed && styles.pressed]}
+            >
+              {stage === "checking" ? (
+                <Animated.View
+                  style={[
+                    styles.ring,
+                    { backgroundColor: orb.fg },
+                    {
+                      opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0] }),
+                      transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] }) }],
+                    },
+                  ]}
+                />
+              ) : null}
+              <View style={[styles.orb, { backgroundColor: orb.bg }]}>
+                <Icon name={orb.icon} size={52} color={orb.fg} />
+              </View>
+            </Pressable>
+            <AppText variant="headingSM" align="center" heading={2} importantForAccessibility="no">
+              {status[orbStage]}
+            </AppText>
+            {detail ? (
+              <AppText variant="bodySM" color={colors.textMuted} align="center">
+                {detail}
+              </AppText>
+            ) : null}
+          </View>
+        )}
+      </ScrollView>
     </Screen>
   );
 }
 
 function createStyles(colors: Palette) {
   return {
-    body: {
+    flex: {
       flex: 1,
-      alignItems: "center" as const,
-      justifyContent: "center" as const,
-      paddingHorizontal: spacing.xl,
-      gap: spacing["2xl"],
-      position: "relative" as const,
     },
-    intro: {
+    body: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.lg,
+      gap: spacing.xl,
+    },
+    summary: {
       alignItems: "center" as const,
       gap: spacing.xs,
-      marginBottom: spacing.sm,
     },
-    methods: {
-      flexDirection: "row" as const,
-      gap: 10,
+    hero: {
       width: "100%" as const,
+      letterSpacing: -1,
     },
-    method: {
+    stage: {
       flex: 1,
-      borderRadius: radii.xl,
-      paddingVertical: spacing.lg,
-      paddingHorizontal: spacing.sm,
-      alignItems: "center" as const,
-      gap: 6,
-      minHeight: 88,
-    },
-    methodOn: {
-      backgroundColor: colors.washPurple,
-    },
-    methodOff: {
-      backgroundColor: colors.surfaceCard,
-    },
-    auth: {
-      width: 160,
-      height: 160,
-      borderRadius: 80,
       alignItems: "center" as const,
       justifyContent: "center" as const,
       gap: spacing.sm,
     },
-    authOn: {
-      backgroundColor: colors.successSurface,
+    reason: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: radii.full,
+      backgroundColor: colors.washYellow,
     },
-    authOff: {
-      backgroundColor: colors.surfaceCard,
+    orbWrap: {
+      width: ORB,
+      height: ORB,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      marginBottom: spacing.sm,
     },
-    srOnly: {
+    orb: {
+      width: ORB,
+      height: ORB,
+      borderRadius: ORB / 2,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    ring: {
       position: "absolute" as const,
-      width: 1,
-      height: 1,
-      overflow: "hidden" as const,
+      width: ORB,
+      height: ORB,
+      borderRadius: ORB / 2,
+    },
+    pressed: {
+      opacity: 0.6,
     },
   };
 }

@@ -18,7 +18,7 @@ function badgesFor(
   return [
     { icon: "mic", label: "First voice command", desc: "Completed a spoken flow with Aya", color: palette.washYellow, earned: true },
     { icon: "shield-checkmark", label: "PIN never spoken", desc: "Confirmed with biometrics, not your voice", color: palette.washGreen, earned: true },
-    { icon: "swap-horizontal", label: "Code-switch pro", desc: "Mixed Akan/Ewe/English in one sentence", color: palette.washPurple, earned: true },
+    { icon: "swap-horizontal", label: "Code-switch pro", desc: "Mixed Akan/English in one sentence", color: palette.washPurple, earned: true },
     { icon: "trending-up", label: "5 flows in a week", desc: "Used Aya for money 5 times this week", color: palette.washBlue, earned: false },
   ];
 }

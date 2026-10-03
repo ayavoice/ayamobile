@@ -41,7 +41,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   phone: {
-    width: 390,
+    width: "100%",
+    maxWidth: 390,
     height: "100%" as unknown as number,
     maxHeight: 926,
     overflow: "hidden",

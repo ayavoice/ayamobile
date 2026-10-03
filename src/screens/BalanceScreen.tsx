@@ -149,7 +149,7 @@ export default function BalanceScreen({ onBack }: Props) {
         <View
           style={styles.askChip}
           accessible
-          accessibilityLabel={`You asked, ${flow.utterance.languageLabel}. ${flow.utterance.gloss}`}
+          accessibilityLabel={`You asked: ${flow.utterance.transcript}`}
         >
           <View {...DECORATIVE_A11Y}>
             <Icon name="mic" size={16} color={colors.purple} />
@@ -161,7 +161,7 @@ export default function BalanceScreen({ onBack }: Props) {
             numberOfLines={2}
             importantForAccessibility="no"
           >
-            {flow.utterance.gloss}
+            {flow.utterance.transcript}
           </AppText>
         </View>
       </ScrollView>

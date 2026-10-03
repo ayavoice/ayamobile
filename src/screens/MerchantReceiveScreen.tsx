@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
   Easing,
@@ -21,16 +21,16 @@ import {
   WaveIcon,
 } from "../components/ui";
 import { ACCENT } from "../content/brand";
-import { DECORATIVE_A11Y } from "../lib/currency";
+import { DEMO_PAYER_NAME, DEMO_SCAN_AMOUNT, DEMO_SHOP, SHOP_PAY_URL } from "../content/merchantPay";
+import { useAppPrefs } from "../context/AppPrefs";
+import { DECORATIVE_A11Y, formatCurrency } from "../lib/currency";
 import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
 
 type Props = { onBack: () => void };
 type Step = "intro" | "setup" | "live";
 
-const DEMO_AMOUNT = "GH₵45.00";
-const DEMO_FROM = "Ama Mensah";
-const SHOP_PAY_URL =
-  "https://pay.aya.app/m/pratik-shop?name=Pratik%27s%20Shop&currency=GHS";
+const DEMO_AMOUNT = formatCurrency(DEMO_SCAN_AMOUNT);
+const DEMO_FROM = DEMO_PAYER_NAME;
 const QR_SIZE = 156;
 
 function PulseRing({ delay }: { delay: number }) {
@@ -87,20 +87,41 @@ function PulseRing({ delay }: { delay: number }) {
 export default function MerchantReceiveScreen({ onBack }: Props) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
+  const { lastShopPayment } = useAppPrefs();
   const [step, setStep] = useState<Step>("intro");
   const [announceAll, setAnnounceAll] = useState(true);
   const [speakerOn, setSpeakerOn] = useState(true);
   const [announcing, setAnnouncing] = useState(false);
   const [lastHeard, setLastHeard] = useState<string | null>(null);
+  const heardIdRef = useRef(0);
 
   const liveWave = speakerOn && announceAll;
 
-  const playDemo = () => {
-    if (!speakerOn || !announceAll) return;
+  const announce = (amount: string, from: string) => {
+    if (!speakerOn || !announceAll) {
+      setLastHeard(`${amount} from ${from}`);
+      return;
+    }
     setAnnouncing(true);
-    setLastHeard(`${DEMO_AMOUNT} from ${DEMO_FROM}`);
+    setLastHeard(`${amount} from ${from}`);
     setTimeout(() => setAnnouncing(false), 2200);
   };
+
+  const playDemo = () => {
+    announce(DEMO_AMOUNT, DEMO_FROM);
+  };
+
+  useEffect(() => {
+    if (!lastShopPayment) return;
+    if (lastShopPayment.id === heardIdRef.current) return;
+    heardIdRef.current = lastShopPayment.id;
+    setStep((s) => (s === "live" ? s : "live"));
+    setLastHeard(`${lastShopPayment.amount} from ${lastShopPayment.from}`);
+    if (!speakerOn || !announceAll) return;
+    setAnnouncing(true);
+    const t = setTimeout(() => setAnnouncing(false), 2200);
+    return () => clearTimeout(t);
+  }, [lastShopPayment, speakerOn, announceAll]);
 
   return (
     <Screen scroll>
@@ -326,7 +347,7 @@ export default function MerchantReceiveScreen({ onBack }: Props) {
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              Pratik's Shop
+              {DEMO_SHOP.name}
             </AppText>
             <AppText
               variant="caption"

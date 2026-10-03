@@ -21,7 +21,7 @@ const TO_URL = "/assets/vendor/";
 
 const APP_TITLE = "Aya — Voice mobile money";
 const APP_DESCRIPTION =
-  "Accessibility-first voice agent for mobile money in Akan (Twi) and Ewe. Speak naturally to send money, check balance, and buy airtime.";
+  "Accessibility-first voice agent for mobile money in Akan (Twi). Speak naturally to send money, check balance, and buy airtime.";
 const THEME_COLOR = "#5528E8";
 
 function walk(dir, out = []) {

@@ -51,7 +51,6 @@ export default function AccessibilitySettingsScreen({ onBack }: Props) {
             {(
               [
                 { code: "tw", label: "Twi" },
-                { code: "ee", label: "Ewe" },
                 { code: "en", label: "English" },
               ] as const
             ).map((lang) => {

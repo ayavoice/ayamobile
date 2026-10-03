@@ -2,7 +2,7 @@
   "expo": {
     "name": "AYA",
     "slug": "aya-mobile",
-    "description": "Accessibility-first voice agent for mobile money in Akan (Twi) and Ewe.",
+    "description": "Accessibility-first voice agent for mobile money in Akan (Twi).",
     "githubUrl": "https://github.com/ayavoice/mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -31,9 +31,23 @@
       "bundler": "metro",
       "name": "Aya",
       "shortName": "Aya",
-      "description": "Accessibility-first voice agent for mobile money in Akan (Twi) and Ewe.",
+      "description": "Accessibility-first voice agent for mobile money in Akan (Twi).",
       "themeColor": "#5528E8",
       "backgroundColor": "#FFFFFF"
-    }
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Aya listens when you talk so you can send money and get help by voice."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Aya uses Face ID so only you can open Aya and approve money."
+        }
+      ]
+    ]
   }
 }

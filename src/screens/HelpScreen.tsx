@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { AppText, Card, Icon, IconWell, Screen, ScreenHeader } from "../components/ui";
+import { AppText, Button, Card, Icon, IconWell, Screen, ScreenHeader } from "../components/ui";
+import { STATUS_LABEL, categoryLabel, spokenReference } from "../content/support";
+import { useAppPrefs } from "../context/AppPrefs";
 import { DECORATIVE_A11Y } from "../lib/currency";
 import { colors, radii, spacing } from "../theme";
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; onGetHelp: () => void };
 
 const FAQS = [
   {
@@ -13,26 +15,65 @@ const FAQS = [
   },
   {
     q: "Is my PIN safe?",
-    a: "Yes. Aya never asks for your PIN or OTP. You only use your fingerprint or face to confirm.",
+    a: "Yes. You only type your MoMo PIN in MTN's secure PIN box, and it goes to MTN only. Aya never sees it or asks for it out loud. You can use biometrics instead.",
   },
   {
     q: "What languages does Aya speak?",
-    a: "Akan/Twi, Ewe, and English. You chose your preferred language during setup.",
+    a: "Akan/Twi and English. You chose your preferred language during setup.",
   },
   {
     q: "What if Aya doesn't understand me?",
     a: "Say it again slowly, or tap Change. You can also call support.",
   },
+  {
+    q: "Will Aya support ask for my PIN?",
+    a: "Never. If anyone says they are from Aya or MTN and asks for your PIN or code, it is a scam. Hang up and tell Aya.",
+  },
+  {
+    q: "I sent money to the wrong person. What do I do?",
+    a: "Tap Talk and say what happened, or tap Report a problem. Aya finds the payment, fills in the details for MTN, and keeps you updated.",
+  },
 ];
 
-export default function HelpScreen({ onBack }: Props) {
+export default function HelpScreen({ onBack, onGetHelp }: Props) {
   const [errorDemo, setErrorDemo] = useState(false);
+  const { supportTicket } = useAppPrefs();
 
   return (
     <Screen background={colors.white} scroll>
       <ScreenHeader title="Help" onBack={onBack} />
 
       <View style={styles.body}>
+        {supportTicket ? (
+          <View
+            style={styles.ticket}
+            accessible
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={`Your request ${spokenReference(supportTicket.reference)}. ${categoryLabel(supportTicket.category)}. Status: ${STATUS_LABEL[supportTicket.status]}. Latest: ${supportTicket.events[supportTicket.events.length - 1]?.title ?? ""}`}
+          >
+            <AppText variant="caption" color={colors.textMuted} importantForAccessibility="no">
+              Your request · {categoryLabel(supportTicket.category)}
+            </AppText>
+            <AppText variant="labelLG" importantForAccessibility="no">
+              {supportTicket.reference}
+            </AppText>
+            <AppText variant="labelSM" color={colors.purple} importantForAccessibility="no">
+              {STATUS_LABEL[supportTicket.status]}
+            </AppText>
+            <AppText variant="bodySM" importantForAccessibility="no">
+              {supportTicket.events[supportTicket.events.length - 1]?.title}
+            </AppText>
+          </View>
+        ) : null}
+
+        <Button
+          variant="purple"
+          onPress={onGetHelp}
+          accessibilityHint="Tell Aya what went wrong by voice. Aya fills in the details and opens a request"
+        >
+          Report a problem
+        </Button>
+
         <View style={styles.call} accessible={false}>
           <View {...DECORATIVE_A11Y}>
             <IconWell backgroundColor={colors.white} size={64} radius={20}>
@@ -43,7 +84,7 @@ export default function HelpScreen({ onBack }: Props) {
             Speak to a support agent
           </AppText>
           <AppText variant="bodySM" align="center" color={colors.textInverseMuted} style={styles.callSub}>
-            Free call, 24/7, in Twi, Ewe, or English
+            Free call, 24/7, in Twi or English
           </AppText>
           <Pressable
             style={styles.callBtn}
@@ -133,14 +174,15 @@ export default function HelpScreen({ onBack }: Props) {
                   </AppText>
                 </Pressable>
                 <Pressable
+                  onPress={onGetHelp}
                   style={styles.callSupport}
                   accessibilityRole="button"
                   role="button"
-                  accessibilityLabel="Call support"
-                  accessibilityHint="Calls Aya support about this error"
+                  accessibilityLabel="Get help"
+                  accessibilityHint="Opens a support request about this error"
                 >
                   <AppText variant="labelXS" color={colors.danger} importantForAccessibility="no">
-                    Call support
+                    Get help
                   </AppText>
                 </Pressable>
               </View>
@@ -181,6 +223,12 @@ const styles = StyleSheet.create({
   body: {
     padding: spacing.xl,
     gap: spacing.md,
+  },
+  ticket: {
+    backgroundColor: colors.washPurple,
+    borderRadius: radii["2xl"],
+    padding: spacing.lg,
+    gap: 4,
   },
   call: {
     backgroundColor: colors.purple,

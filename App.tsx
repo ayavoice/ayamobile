@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
+import { ActivityIndicator, AppState, Platform, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -7,6 +7,10 @@ import MobilePreviewFrame from "./src/components/MobilePreviewFrame";
 import TabBar, { TAB_ROOT_SCREENS } from "./src/components/TabBar";
 import { AppPrefsProvider, useAppPrefs } from "./src/context/AppPrefs";
 import type { FlowId } from "./src/content/flows";
+import { AUTO_LOCK_MS, SIGNUP_STEPS, SIGNUP_TOTAL, lookupMomoName } from "./src/content/onboarding";
+import type { ScreenId } from "./src/navigation/types";
+import { DEMO_PAYER_NAME } from "./src/content/merchantPay";
+import { formatCurrency } from "./src/lib/currency";
 import { useAppFonts } from "./src/hooks/useAppFonts";
 import { documentTitleFor } from "./src/navigation/screenTitles";
 import { useAppNavigation } from "./src/navigation/useAppNavigation";
@@ -14,17 +18,17 @@ import { ThemeProvider, useColors, useTheme } from "./src/theme";
 import {
   SplashScreen,
   OnboardingScreen,
-  AuthWelcomeScreen,
   SignupScreen,
   LoginScreen,
-  ForgotPinScreen,
   OtpVerifyScreen,
-  CreatePinScreen,
+  SignInScreen,
+  AppLockSetupScreen,
   LanguageScreen,
   AccessibilitySetupScreen,
   HomeScreen,
   ListeningScreen,
   SendMoneyScreen,
+  ScanPayScreen,
   TransferReceiptScreen,
   ConfirmationScreen,
   BiometricScreen,
@@ -41,12 +45,12 @@ import {
   AccessibilitySettingsScreen,
   SecurityScreen,
   HelpScreen,
+  SupportScreen,
 } from "./src/screens";
 
 const LANG_HTML: Record<string, string> = {
   en: "en",
   tw: "tw",
-  ee: "ee",
 };
 
 function focusMainContent() {
@@ -57,23 +61,96 @@ function focusMainContent() {
   }
 }
 
+const PRE_AUTH_SCREENS: ScreenId[] = [
+  "splash",
+  "onboarding",
+  "language",
+  "accessibility-setup",
+  "signup",
+  "login",
+  "otp-verify",
+  "sign-in",
+  "app-lock-setup",
+  "unlock",
+];
+
 function AppNavigator() {
-  const { setActiveFlow, activeFlow, language } = useAppPrefs();
+  const {
+    setActiveFlow,
+    activeFlow,
+    language,
+    scanPayee,
+    transferAmount,
+    publishShopPayment,
+    clearScanPayment,
+    setScanPayee,
+    account,
+    setAccount,
+    appLock,
+    setAppLock,
+    signOut,
+  } = useAppPrefs();
   const { screen, go, back, resetTo } = useAppNavigation("splash");
-  const [authMode, setAuthMode] = useState<"signup" | "reset">("signup");
   const [pendingPhone, setPendingPhone] = useState("");
+  const [authEntry, setAuthEntry] = useState<"signup" | "login">("signup");
   const prevTitleRef = useRef<string>("");
 
-  const goHome = useCallback(() => resetTo("home"), [resetTo]);
-  const logout = useCallback(() => resetTo("login"), [resetTo]);
+  const goHome = useCallback(() => {
+    clearScanPayment();
+    resetTo("home");
+  }, [clearScanPayment, resetTo]);
+  const logout = useCallback(() => {
+    signOut();
+    resetTo("login");
+  }, [signOut, resetTo]);
+
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
+  const appLockRef = useRef(appLock);
+  appLockRef.current = appLock;
+  useEffect(() => {
+    let leftAt = 0;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") {
+        leftAt = leftAt || Date.now();
+        return;
+      }
+      const away = leftAt ? Date.now() - leftAt : 0;
+      leftAt = 0;
+      if (appLockRef.current && !PRE_AUTH_SCREENS.includes(screenRef.current) && away >= AUTO_LOCK_MS) {
+        resetTo("unlock");
+      }
+    });
+    return () => sub.remove();
+  }, [resetTo]);
 
   const startFlow = useCallback(
     (flow: FlowId) => {
+      setScanPayee(null);
       setActiveFlow(flow);
       go("listening");
     },
-    [go, setActiveFlow],
+    [go, setActiveFlow, setScanPayee],
   );
+
+  const openScanPay = useCallback(() => go("scan-pay"), [go]);
+
+  const finishProcessing = useCallback(() => {
+    if (activeFlow === "transfer" && scanPayee) {
+      publishShopPayment({
+        amount: formatCurrency(transferAmount ?? "45"),
+        from: DEMO_PAYER_NAME,
+        shopId: scanPayee.id,
+      });
+    }
+    go(
+      activeFlow === "balance"
+        ? "balance"
+        : activeFlow === "transfer"
+          ? "transfer-receipt"
+          : "success",
+    );
+  }, [activeFlow, go, publishShopPayment, scanPayee, transferAmount]);
 
   const { isDark } = useTheme();
   const statusStyle = isDark ? "light" : "dark";
@@ -92,70 +169,91 @@ function AppNavigator() {
   let content = null;
   switch (screen) {
     case "splash":
-      content = <SplashScreen onNext={() => go("onboarding")} />;
+      content = <SplashScreen onNext={() => (appLock ? resetTo("unlock") : go("onboarding"))} />;
       break;
     case "onboarding":
-      content = <OnboardingScreen onNext={() => go("auth-welcome")} />;
+      content = <OnboardingScreen onNext={() => go("language")} onLogin={() => go("login")} />;
       break;
-    case "auth-welcome":
-      content = (
-        <AuthWelcomeScreen onSignup={() => go("signup")} onLogin={() => go("login")} />
-      );
+    case "language":
+      content = <LanguageScreen onNext={() => go("accessibility-setup")} onBack={back} />;
+      break;
+    case "accessibility-setup":
+      content = <AccessibilitySetupScreen onNext={() => go("signup")} onBack={back} />;
       break;
     case "signup":
       content = (
         <SignupScreen
           onNext={(phone) => {
             setPendingPhone(phone);
-            setAuthMode("signup");
+            setAuthEntry("signup");
             go("otp-verify");
           }}
           onBack={back}
-          onLogin={() => go("login")}
         />
       );
       break;
     case "login":
       content = (
         <LoginScreen
-          onNext={goHome}
-          onBack={back}
-          onForgotPin={() => go("forgot-pin")}
-          onSignup={() => go("signup")}
-        />
-      );
-      break;
-    case "forgot-pin":
-      content = (
-        <ForgotPinScreen
           onNext={(phone) => {
             setPendingPhone(phone);
-            setAuthMode("reset");
+            setAuthEntry("login");
             go("otp-verify");
           }}
           onBack={back}
+          onSignup={() => go("language")}
         />
       );
       break;
     case "otp-verify":
       content = (
-        <OtpVerifyScreen phone={pendingPhone} onVerified={() => go("create-pin")} onBack={back} />
-      );
-      break;
-    case "create-pin":
-      content = (
-        <CreatePinScreen
-          mode={authMode}
-          onDone={() => go(authMode === "signup" ? "language" : "home")}
+        <OtpVerifyScreen
+          phone={pendingPhone}
+          showProgress={authEntry === "signup"}
+          onVerified={() => resetTo("sign-in")}
           onBack={back}
         />
       );
       break;
-    case "language":
-      content = <LanguageScreen onNext={() => go("accessibility-setup")} />;
+    case "sign-in": {
+      const name = lookupMomoName(pendingPhone);
+      const isSignup = authEntry === "signup";
+      content = (
+        <SignInScreen
+          phone={pendingPhone}
+          name={name}
+          returning={!isSignup}
+          allowBiometrics={!isSignup}
+          step={isSignup ? { current: SIGNUP_STEPS.pin, total: SIGNUP_TOTAL } : undefined}
+          onSignedIn={(method) => {
+            setAccount({ name, phone: pendingPhone });
+            if (isSignup) {
+              go("app-lock-setup");
+              return;
+            }
+            setAppLock({ biometric: method === "biometric" });
+            goHome();
+          }}
+          onSwitchAccount={() => resetTo(authEntry)}
+          onBack={() => resetTo(authEntry)}
+        />
+      );
       break;
-    case "accessibility-setup":
-      content = <AccessibilitySetupScreen onNext={() => go("home")} />;
+    }
+    case "app-lock-setup":
+      content = <AppLockSetupScreen onDone={goHome} onBack={back} />;
+      break;
+    case "unlock":
+      content = account ? (
+        <SignInScreen
+          phone={account.phone}
+          name={account.name}
+          returning
+          allowBiometrics={appLock?.biometric ?? false}
+          onSignedIn={goHome}
+          onSwitchAccount={logout}
+        />
+      ) : null;
       break;
     case "home":
       content = <HomeScreen onNav={go} onStartFlow={startFlow} />;
@@ -163,20 +261,44 @@ function AppNavigator() {
     case "listening":
       content = (
         <ListeningScreen
-          onNext={() => go(activeFlow === "transfer" ? "send-money" : "confirmation")}
+          onNext={() =>
+            go(
+              activeFlow === "transfer"
+                ? "send-money"
+                : activeFlow === "support"
+                  ? "support"
+                  : "biometric",
+            )
+          }
           onBack={back}
+          onScan={openScanPay}
         />
       );
       break;
+    case "scan-pay":
+      content = (
+        <ScanPayScreen onScanned={() => go("send-money")} onBack={back} />
+      );
+      break;
     case "send-money":
-      content = <SendMoneyScreen onSend={() => go("biometric")} onBack={back} />;
+      content = (
+        <SendMoneyScreen
+          onSend={() => go("biometric")}
+          onBack={back}
+          onScan={openScanPay}
+        />
+      );
       break;
     case "transfer-receipt":
       content = (
         <TransferReceiptScreen
           onHome={goHome}
-          onTransferMore={() => go("listening")}
+          onTransferMore={() => {
+            clearScanPayment();
+            go("listening");
+          }}
           onBack={back}
+          onViewShopSpeaker={scanPayee ? () => go("merchant-receive") : undefined}
         />
       );
       break;
@@ -187,19 +309,7 @@ function AppNavigator() {
       content = <BiometricScreen onSuccess={() => go("processing")} onBack={back} />;
       break;
     case "processing":
-      content = (
-        <ProcessingScreen
-          onDone={() =>
-            go(
-              activeFlow === "balance"
-                ? "balance"
-                : activeFlow === "transfer"
-                  ? "transfer-receipt"
-                  : "success",
-            )
-          }
-        />
-      );
+      content = <ProcessingScreen onDone={finishProcessing} />;
       break;
     case "balance":
       content = <BalanceScreen onBack={goHome} />;
@@ -236,7 +346,10 @@ function AppNavigator() {
       break;
     case "help":
     case "error":
-      content = <HelpScreen onBack={back} />;
+      content = <HelpScreen onBack={back} onGetHelp={() => startFlow("support")} />;
+      break;
+    case "support":
+      content = <SupportScreen onDone={goHome} onBack={back} />;
       break;
     default:
       content = <HomeScreen onNav={go} onStartFlow={startFlow} />;

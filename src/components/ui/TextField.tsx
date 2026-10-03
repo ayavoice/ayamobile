@@ -23,6 +23,10 @@ type TextFieldProps = {
   error?: string;
   onBlur?: () => void;
   accessibilityLabel?: string;
+  autoComplete?: TextInputProps["autoComplete"];
+  textContentType?: TextInputProps["textContentType"];
+  returnKeyType?: TextInputProps["returnKeyType"];
+  onSubmitEditing?: () => void;
 };
 
 export default function TextField({
@@ -39,6 +43,10 @@ export default function TextField({
   error,
   onBlur,
   accessibilityLabel,
+  autoComplete,
+  textContentType,
+  returnKeyType,
+  onSubmitEditing,
 }: TextFieldProps) {
   const colors = useColors();
   const styles = usePaletteStyles(createStyles);
@@ -90,6 +98,10 @@ export default function TextField({
           autoCapitalize={autoCapitalize}
           autoFocus={autoFocus}
           maxLength={maxLength}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
           onFocus={() => setFocused(true)}
           onBlur={() => {
             setFocused(false);

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,8 +26,10 @@ import Svg, {
   G,
   LinearGradient,
   Path,
+  RadialGradient,
   Rect,
   Stop,
+  Text as SvgText,
 } from "react-native-svg";
 import { AppText, Avatar, Icon, IconWell, MciIcon, Screen } from "../components/ui";
 import NotificationsModal from "../components/NotificationsModal";
@@ -296,7 +297,6 @@ const QUICK_SEND = [
 ];
 
 const HOME_BALANCE = 2648.34;
-
 type LastAction = {
   id: string;
   label: string;
@@ -361,11 +361,23 @@ function bannersFor(
 }
 
 const MIC_WAVE_BARS = [
-  { h: 16, delay: 0, color: "#2830F0" },
-  { h: 32, delay: 90, color: "#3A30F0" },
-  { h: 48, delay: 40, color: "#5528E8" },
-  { h: 28, delay: 130, color: "#6B20E8" },
-  { h: 16, delay: 60, color: "#7B20E8" },
+  { h: 14, delay: 0 },
+  { h: 22, delay: 120 },
+  { h: 34, delay: 60 },
+  { h: 26, delay: 180 },
+  { h: 44, delay: 30 },
+  { h: 58, delay: 150 },
+  { h: 40, delay: 90 },
+  { h: 66, delay: 0 },
+  { h: 48, delay: 130 },
+  { h: 66, delay: 60 },
+  { h: 40, delay: 170 },
+  { h: 58, delay: 20 },
+  { h: 44, delay: 110 },
+  { h: 26, delay: 50 },
+  { h: 34, delay: 160 },
+  { h: 22, delay: 80 },
+  { h: 14, delay: 140 },
 ];
 
 function MicWaveBar({ height, delay, color }: { height: number; delay: number; color: string }) {
@@ -390,12 +402,101 @@ function MicWaveBar({ height, delay, color }: { height: number; delay: number; c
   return <Animated.View style={[micWaveStyles.bar, { height, backgroundColor: color }, style]} />;
 }
 
-function MicWave() {
+function MicWave({ color = ACCENT }: { color?: string }) {
   return (
     <View style={micWaveStyles.row} {...DECORATIVE_A11Y}>
       {MIC_WAVE_BARS.map((bar, i) => (
-        <MicWaveBar key={i} height={bar.h} delay={bar.delay} color={bar.color} />
+        <MicWaveBar key={i} height={bar.h} delay={bar.delay} color={color} />
       ))}
+    </View>
+  );
+}
+
+const COIN_FACE = "#F7C548";
+const COIN_EDGE = "#C98F1E";
+const COIN_MARK = "#A8730F";
+
+function Banknote({ x, y, rotate }: { x: number; y: number; rotate: number }) {
+  return (
+    <G transform={`translate(${x} ${y}) rotate(${rotate})`}>
+      <Rect width={130} height={68} rx={8} fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.38)" />
+      <Rect x={6} y={6} width={118} height={56} rx={5} fill="none" stroke="rgba(255,255,255,0.22)" strokeDasharray="3 2" />
+      <Circle cx={65} cy={34} r={17} fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.4)" />
+      <SvgText x={65} y={41} fontSize={20} fontWeight="bold" textAnchor="middle" fill="rgba(255,255,255,0.85)">
+        ₵
+      </SvgText>
+      <SvgText x={14} y={22} fontSize={11} fontWeight="bold" fill="rgba(255,255,255,0.7)">
+        50
+      </SvgText>
+      <SvgText x={116} y={58} fontSize={11} fontWeight="bold" textAnchor="end" fill="rgba(255,255,255,0.7)">
+        50
+      </SvgText>
+    </G>
+  );
+}
+
+function CoinStack({ cx, baseY, count }: { cx: number; baseY: number; count: number }) {
+  return (
+    <G>
+      {Array.from({ length: count }, (_, i) => {
+        const y = baseY - i * 7;
+        return (
+          <G key={i}>
+            <Ellipse cx={cx} cy={y + 4} rx={20} ry={7} fill={COIN_EDGE} />
+            <Ellipse cx={cx} cy={y} rx={20} ry={7} fill={COIN_FACE} />
+          </G>
+        );
+      })}
+      <Ellipse cx={cx} cy={baseY - (count - 1) * 7} rx={13} ry={4.5} fill="none" stroke={COIN_EDGE} />
+    </G>
+  );
+}
+
+function Coin({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  return (
+    <G>
+      <Circle cx={cx + 1.5} cy={cy + 2} r={r} fill={COIN_EDGE} />
+      <Circle cx={cx} cy={cy} r={r} fill={COIN_FACE} />
+      <Circle cx={cx} cy={cy} r={r - 4} fill="none" stroke={COIN_EDGE} strokeWidth={1.2} />
+      <SvgText x={cx} y={cy + r * 0.4} fontSize={r * 1.1} fontWeight="bold" textAnchor="middle" fill={COIN_MARK}>
+        ₵
+      </SvgText>
+    </G>
+  );
+}
+
+function HeroCardBackdrop() {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const { width, height } = size;
+
+  return (
+    <View
+      style={[StyleSheet.absoluteFill, { backgroundColor: ACCENT_BLUE }]}
+      onLayout={(e) => setSize(e.nativeEvent.layout)}
+      {...DECORATIVE_A11Y}
+    >
+      {width > 0 && (
+        <Svg width={width} height={height}>
+          <Defs>
+            <LinearGradient id="heroGrad" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor="#3D47FF" />
+              <Stop offset="0.5" stopColor={ACCENT_BLUE} />
+              <Stop offset="1" stopColor="#14189E" />
+            </LinearGradient>
+            <RadialGradient id="heroGlow" cx="0.15" cy="0" r="0.8">
+              <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.18} />
+              <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={width} height={height} fill="url(#heroGrad)" />
+          <Rect x={0} y={0} width={width} height={height} fill="url(#heroGlow)" />
+
+          <Banknote x={width - 62} y={-30} rotate={22} />
+          <Banknote x={-82} y={height - 28} rotate={-14} />
+          <Coin cx={30} cy={32} r={14} />
+          <CoinStack cx={width - 36} baseY={height - 18} count={4} />
+        </Svg>
+      )}
     </View>
   );
 }
@@ -405,8 +506,8 @@ const micWaveStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    height: 50,
+    gap: 6,
+    height: 70,
   },
   bar: {
     width: 6,
@@ -427,6 +528,7 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
   const styles = usePaletteStyles(createHomeStyles);
   const [selectedSend, setSelectedSend] = useState("Mansi");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [balanceHidden, setBalanceHidden] = useState(false);
   const BANNERS = bannersFor(colors, onNav);
   const balanceSpoken = formatCurrencySpoken(HOME_BALANCE);
   const serviceCount = SERVICES.length;
@@ -492,55 +594,58 @@ export default function HomeScreen({ onNav, onStartFlow }: Props) {
           </View>
         </View>
 
-        <View
-          accessible
-          accessibilityRole="summary"
-          role="summary"
-          accessibilityLabel={`Your balance, ${balanceSpoken}`}
-          accessibilityLiveRegion="polite"
-          style={styles.balanceBlock}
-        >
-          <AppText
-            variant="labelSM"
-            align="center"
-            color={colors.purple}
-            style={styles.balanceLabel}
-            importantForAccessibility="no"
-          >
-            Your balance
-          </AppText>
-          <AppText
-            variant="displayLG"
-            align="center"
-            color={colors.text}
-            style={styles.balance}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            importantForAccessibility="no"
-          >
-            {formatCurrency(HOME_BALANCE)}
-          </AppText>
-        </View>
-
-        <View style={styles.stage}>
-          <Image
-            source={brandImages.cardStack}
-            style={styles.cardStack as ImageStyle}
-            resizeMode="contain"
-            accessibilityIgnoresInvertColors
-            {...DECORATIVE_A11Y}
-          />
-          <View style={styles.micWrap}>
+        <View style={styles.hero}>
+          <HeroCardBackdrop />
+          <View style={styles.voiceStage}>
+            <View style={styles.micWrap}>
+              <Pressable
+                onPress={() => onStartFlow("transfer")}
+                accessibilityRole="button"
+                role="button"
+                accessibilityLabel="Talk to send money"
+                accessibilityHint="Starts a voice-guided transfer"
+                style={({ pressed }) => [styles.micButton, pressed && styles.micPressed]}
+              >
+                <MicWave color={colors.white} />
+              </Pressable>
+            </View>
+          </View>
+          <View style={styles.balanceLabelRow}>
+            <AppText variant="labelXS" color="rgba(255,255,255,0.78)" style={styles.balanceLabel} {...DECORATIVE_A11Y}>
+              Your balance
+            </AppText>
             <Pressable
-              onPress={() => onStartFlow("transfer")}
+              onPress={() => setBalanceHidden((h) => !h)}
               accessibilityRole="button"
               role="button"
-              accessibilityLabel="Talk to send money"
-              accessibilityHint="Starts a voice-guided transfer"
-              style={({ pressed }) => [styles.micButton, pressed && styles.micPressed]}
+              accessibilityLabel={balanceHidden ? "Show balance" : "Hide balance"}
+              hitSlop={12}
             >
-              <MicWave />
+              <Icon
+                name={balanceHidden ? "eye-off-outline" : "eye-outline"}
+                size={18}
+                color="rgba(255,255,255,0.78)"
+              />
             </Pressable>
+          </View>
+          <View
+            accessible
+            accessibilityRole="summary"
+            role="summary"
+            accessibilityLabel={balanceHidden ? "Your balance is hidden" : `Your balance, ${balanceSpoken}`}
+            accessibilityLiveRegion="polite"
+          >
+            <AppText
+              variant="displayLG"
+              align="center"
+              color={colors.white}
+              style={styles.balance}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              importantForAccessibility="no"
+            >
+              {balanceHidden ? "GH₵ ••••••" : formatCurrency(HOME_BALANCE)}
+            </AppText>
           </View>
         </View>
 
@@ -900,48 +1005,41 @@ function createHomeStyles(colors: Palette): HomeStyleSheet {
     borderRadius: 4,
     backgroundColor: colors.purple,
   },
-  balanceLabel: {
-    marginBottom: 6,
-  },
-  balanceBlock: {
+  hero: {
     alignItems: "center",
+    marginBottom: spacing["2xl"],
+    paddingVertical: spacing["2xl"],
+    paddingHorizontal: spacing.xl,
+    borderRadius: 28,
+    overflow: "hidden",
+  },
+  balanceLabel: {
+    letterSpacing: 0.4,
+  },
+  balanceLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
   },
   balance: {
-    letterSpacing: -1.2,
-    fontWeight: "800",
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: -1,
   },
-  stage: {
-    height: 240,
+  voiceStage: {
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-    marginBottom: spacing.lg,
-  },
-  cardStack: {
-    position: "absolute",
-    width: 345,
-    height: 240,
+    marginBottom: spacing.sm,
   },
   micWrap: {
-    width: MIC,
-    height: MIC,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -130,
-    zIndex: 2,
   },
   micButton: {
-    width: MIC,
-    height: MIC,
-    borderRadius: MIC / 2,
-    backgroundColor: "rgba(228,228,235,0.92)",
+    minHeight: MIC,
+    paddingHorizontal: spacing.sm,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#5528E8",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.22,
-    shadowRadius: 20,
-    elevation: 14,
   },
   micPressed: {
     opacity: 0.88,

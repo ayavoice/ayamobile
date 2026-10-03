@@ -1,91 +1,23 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
-import { AppText, Button, Icon, IconWell, Screen, ScreenFooter } from "../components/ui";
+import { Button } from "../components/ui";
+import SetupStep, { SetupChoice, SetupChoiceGroup } from "../components/SetupStep";
 import { useAppPrefs } from "../context/AppPrefs";
 import type { AppLanguage } from "../content/flows";
-import { DECORATIVE_A11Y } from "../lib/currency";
-import { radii, spacing, useColors, usePaletteStyles, type Palette } from "../theme";
+import { LANGUAGE_TILES, SIGNUP_STEPS, SIGNUP_TOTAL } from "../content/onboarding";
+import { speak } from "../lib/speech";
 
-const LANGUAGES: {
-  code: AppLanguage;
-  name: string;
-  badge: string;
-  sample: string;
-}[] = [
-  { code: "tw", name: "Akan / Twi", badge: "TW", sample: "Yɛ ka Twi" },
-  { code: "ee", name: "Ewe", badge: "EE", sample: "Míawɔ Eʋegbe" },
-  { code: "en", name: "English", badge: "EN", sample: "We speak English" },
-];
+type Props = { onNext: () => void; onBack: () => void };
 
-type Props = { onNext: () => void };
-
-export default function LanguageScreen({ onNext }: Props) {
-  const colors = useColors();
-  const styles = usePaletteStyles(createStyles);
+export default function LanguageScreen({ onNext, onBack }: Props) {
   const { language, setLanguage } = useAppPrefs();
   const [selected, setSelected] = useState<AppLanguage>(language);
 
   return (
-    <Screen scroll>
-      <View style={styles.header}>
-        <AppText variant="titleLG" heading={1}>Choose your language</AppText>
-        <AppText variant="bodyMD" style={styles.sub}>
-          Aya will speak and understand you in this language, including mixing in English.
-        </AppText>
-      </View>
-
-      <View
-        style={styles.list}
-        accessibilityRole="radiogroup"
-        role="radiogroup"
-        accessibilityLabel="Choose your language"
-      >
-        {LANGUAGES.map((lang) => {
-          const active = selected === lang.code;
-          return (
-            <Pressable
-              key={lang.code}
-              onPress={() => setSelected(lang.code)}
-              accessibilityRole="radio"
-              role="radio"
-              accessibilityState={{ checked: active, selected: active }}
-              aria-checked={active}
-              accessibilityLabel={`${lang.name}, sample: ${lang.sample}`}
-              style={[styles.row, active && styles.rowActive]}
-            >
-              <View {...DECORATIVE_A11Y}>
-                <IconWell
-                  backgroundColor={active ? colors.surface : colors.washPurple}
-                  size={52}
-                  radius={18}
-                >
-                  <AppText variant="labelMD" color={colors.text}>
-                    {lang.badge}
-                  </AppText>
-                </IconWell>
-              </View>
-
-              <View style={styles.meta} importantForAccessibility="no">
-                <AppText variant="heading" numberOfLines={1} importantForAccessibility="no">
-                  {lang.name}
-                </AppText>
-                <AppText variant="bodySM" style={styles.sample} numberOfLines={1} importantForAccessibility="no">
-                  {lang.sample}
-                </AppText>
-              </View>
-
-              <View
-                style={[styles.check, active ? styles.checkOn : styles.checkOff]}
-                {...DECORATIVE_A11Y}
-              >
-                {active ? <Icon name="checkmark" size={16} color={colors.textOnYellow} /> : null}
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <ScreenFooter>
+    <SetupStep
+      title="Choose your language"
+      step={{ current: SIGNUP_STEPS.language, total: SIGNUP_TOTAL }}
+      onBack={onBack}
+      footer={
         <Button
           onPress={() => {
             setLanguage(selected);
@@ -94,61 +26,22 @@ export default function LanguageScreen({ onNext }: Props) {
         >
           Continue
         </Button>
-      </ScreenFooter>
-    </Screen>
+      }
+    >
+      <SetupChoiceGroup label="Language">
+        {LANGUAGE_TILES.map((tile) => (
+          <SetupChoice
+            key={tile.code}
+            label={tile.name}
+            badge={tile.code.toUpperCase()}
+            checked={selected === tile.code}
+            onPress={() => {
+              setSelected(tile.code);
+              speak(tile.spoken);
+            }}
+          />
+        ))}
+      </SetupChoiceGroup>
+    </SetupStep>
   );
-}
-
-function createStyles(colors: Palette) {
-  return {
-    header: {
-      paddingTop: spacing.xl,
-      paddingHorizontal: spacing.screenX,
-      flexShrink: 0,
-    },
-    sub: {
-      marginTop: spacing.sm,
-    },
-    list: {
-      flex: 1,
-      paddingHorizontal: spacing.screenX,
-      paddingVertical: spacing["2xl"],
-    },
-    row: {
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      minHeight: 84,
-      marginBottom: 12,
-      borderRadius: radii["2xl"],
-      paddingVertical: spacing.lg,
-      paddingHorizontal: spacing.xl,
-      backgroundColor: colors.surfaceCard,
-    },
-    rowActive: {
-      backgroundColor: colors.washPurple,
-    },
-    meta: {
-      flex: 1,
-      marginLeft: spacing.lg,
-      marginRight: spacing.md,
-      minWidth: 0,
-    },
-    sample: {
-      marginTop: 2,
-    },
-    check: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      alignItems: "center" as const,
-      justifyContent: "center" as const,
-      flexShrink: 0,
-    },
-    checkOn: {
-      backgroundColor: colors.purple,
-    },
-    checkOff: {
-      backgroundColor: colors.surface,
-    },
-  };
 }

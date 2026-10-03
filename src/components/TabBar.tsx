@@ -57,8 +57,8 @@ export default function TabBar({ current, onNav, onStartFlow }: Props) {
               onPress={() => onStartFlow("transfer")}
               accessibilityRole="button"
               role="button"
-              accessibilityLabel="Talk to send money"
-              accessibilityHint="Starts a voice-guided money transfer"
+              accessibilityLabel="Talk to Aya"
+              accessibilityHint="Starts a voice conversation. Send money, or say something went wrong to get help"
               hitSlop={6}
               style={styles.tab}
             >
