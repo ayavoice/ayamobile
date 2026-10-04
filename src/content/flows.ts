@@ -1,4 +1,4 @@
-export type AppLanguage = "tw" | "en";
+export type AppLanguage = "tw" | "ee" | "en";
 export type FlowId = "transfer" | "balance" | "airtime" | "support";
 
 export type FlowDetail = { label: string; value: string };
@@ -30,10 +30,16 @@ export type FlowContent = {
 
 const LANG_LABEL: Record<AppLanguage, string> = {
   tw: "Akan / Twi",
+  ee: "Eʋegbe / Ewe",
   en: "English",
 };
 
-const TRANSFER: Record<AppLanguage, FlowContent> = {
+/** Ewe screens reuse the English layout copy; only the spoken example changes. */
+function eweFrom(base: FlowContent, listenHint: string, transcript: string): FlowContent {
+  return { ...base, listenHint, utterance: { languageLabel: LANG_LABEL.ee, transcript, gloss: base.utterance.gloss } };
+}
+
+const TRANSFER: Record<"tw" | "en", FlowContent> = {
   tw: {
     intentLabel: "SEND MONEY",
     listenHint: "Speak naturally in Akan/Twi, code-switching is fine",
@@ -104,7 +110,7 @@ const TRANSFER: Record<AppLanguage, FlowContent> = {
   },
 };
 
-const BALANCE: Record<AppLanguage, FlowContent> = {
+const BALANCE: Record<"tw" | "en", FlowContent> = {
   tw: {
     intentLabel: "CHECK BALANCE",
     listenHint: "Ask for your balance in Akan/Twi",
@@ -171,7 +177,7 @@ const BALANCE: Record<AppLanguage, FlowContent> = {
   },
 };
 
-const AIRTIME: Record<AppLanguage, FlowContent> = {
+const AIRTIME: Record<"tw" | "en", FlowContent> = {
   tw: {
     intentLabel: "BUY AIRTIME",
     listenHint: "Say the airtime or data you need in Akan/Twi",
@@ -262,7 +268,7 @@ const SUPPORT_BASE: Omit<FlowContent, "listenHint" | "utterance"> = {
   receiptAvailable: false,
 };
 
-const SUPPORT: Record<AppLanguage, FlowContent> = {
+const SUPPORT: Record<"tw" | "en", FlowContent> = {
   tw: {
     ...SUPPORT_BASE,
     listenHint: "Tell Aya what went wrong in Akan/Twi. Take your time",
@@ -284,10 +290,23 @@ const SUPPORT: Record<AppLanguage, FlowContent> = {
 };
 
 const FLOW_MAP: Record<FlowId, Record<AppLanguage, FlowContent>> = {
-  transfer: TRANSFER,
-  balance: BALANCE,
-  airtime: AIRTIME,
-  support: SUPPORT,
+  transfer: {
+    ...TRANSFER,
+    ee: eweFrom(TRANSFER.en, "Ƒo nu le Eʋegbe me, àte ŋu atsɔ Eŋlisigbe ade eme", "Medi be maɖo GH₵580 na Ricky Martin"),
+  },
+  balance: { ...BALANCE, ee: eweFrom(BALANCE.en, "Bia wò ga xexlẽme le Eʋegbe me", "Ga nenie le asinye?") },
+  airtime: {
+    ...AIRTIME,
+    ee: eweFrom(AIRTIME.en, "Gblɔ airtime alo data si nèdi le Eʋegbe me", "Medi be maƒle airtime GH₵10"),
+  },
+  support: {
+    ...SUPPORT,
+    ee: eweFrom(
+      SUPPORT.en,
+      "Gblɔ nu si gblẽ na Aya le Eʋegbe me. Mègaƒu du o",
+      "Meɖe kuku kpe ɖe ŋunye, nye ga meyi afi si wòle be wòayi o",
+    ),
+  },
 };
 
 export function getFlowContent(flow: FlowId, language: AppLanguage): FlowContent {

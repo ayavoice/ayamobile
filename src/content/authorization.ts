@@ -20,7 +20,7 @@ export const DEFAULT_PRE_APPROVAL: PreApproval = {
 export const PER_PAYMENT_OPTIONS = [100, 200, 500] as const;
 export const PER_DAY_OPTIONS = [300, 500, 1000] as const;
 
-export type PinReason = "no-pre-approval" | "over-payment" | "over-day" | "new-recipient";
+export type PinReason = "no-pre-approval" | "over-payment" | "over-day" | "new-recipient" | "safety-check";
 
 export type AuthDecision = { mode: "fingerprint" } | { mode: "pin"; reason: PinReason };
 
@@ -49,6 +49,8 @@ export function pinReasonText(reason: PinReason, preApproval: PreApproval | null
       return `Over your GH₵${preApproval?.perDay} daily limit`;
     case "new-recipient":
       return "New recipient";
+    case "safety-check":
+      return "Extra check for your safety";
   }
 }
 

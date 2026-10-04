@@ -295,12 +295,14 @@ export const STATUS_LABEL: Record<TicketStatus, string> = {
 
 export const LANGUAGE_NAME: Record<AppLanguage, string> = {
   tw: "Twi",
+  ee: "Ewe",
   en: "English",
 };
 
 /** Short comfort phrase in the user's language, shown and spoken first. */
 export const COMFORT_LINE: Record<AppLanguage, string> = {
   tw: "Mewɔ ha ma wo.",
+  ee: "Mele afi kpli wò.",
   en: "I'm here with you.",
 };
 

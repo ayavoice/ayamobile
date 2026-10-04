@@ -93,6 +93,9 @@ export default function Button({
           variant="button"
           color={variantLabel(variant, colors)}
           style={styles.label}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
           importantForAccessibility="no"
         >
           {children}
@@ -118,6 +121,7 @@ const styles = StyleSheet.create({
   },
   label: {
     textAlign: "center",
+    flexShrink: 1,
   },
   pressed: {
     opacity: 0.88,

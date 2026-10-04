@@ -29,6 +29,7 @@ export default function BiometricScreen({ onSuccess, onBack }: Props) {
     scanPayee,
     transferRecipient,
     appLock,
+    riskLevel,
   } = useAppPrefs();
   const biometricOn = appLock?.biometric ?? true;
   const movesMoney = activeFlow !== "balance";
@@ -37,7 +38,9 @@ export default function BiometricScreen({ onSuccess, onBack }: Props) {
   const [decision] = useState(() =>
     !biometricOn
       ? ({ mode: "pin", reason: "no-pre-approval" } as const)
-      : movesMoney
+      : movesMoney && riskLevel === "high"
+        ? ({ mode: "pin", reason: "safety-check" } as const)
+        : movesMoney
         ? decideAuth({ amount, savedRecipient: transferRecipient?.saved ?? !scanPayee, spentToday, preApproval })
         : ({ mode: "fingerprint" } as const),
   );

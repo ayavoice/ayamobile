@@ -7,11 +7,13 @@ type IonName = ComponentProps<typeof Ionicons>["name"];
 
 export const WELCOME_LINES: { code: AppLanguage; text: string }[] = [
   { code: "tw", text: "Akwaaba! Me din de Aya." },
+  { code: "ee", text: "Woezɔ! Nye ŋkɔe nye Aya." },
   { code: "en", text: "Welcome! I'm Aya." },
 ];
 
 export const LANGUAGE_TILES: { code: AppLanguage; name: string; spoken: string }[] = [
   { code: "tw", name: "Twi", spoken: "Twi" },
+  { code: "ee", name: "Ewe", spoken: "Eʋegbe" },
   { code: "en", name: "English", spoken: "English" },
 ];
 

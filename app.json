@@ -14,9 +14,6 @@
         "UIViewControllerBasedStatusBarAppearance": true
       }
     },
-    "androidStatusBar": {
-      "translucent": true
-    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#1B1433",

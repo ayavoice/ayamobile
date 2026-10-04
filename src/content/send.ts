@@ -41,6 +41,8 @@ export type Recipient =
 
 export const SAVED_RECIPIENTS: Recipient[] = [
   { kind: "wallet", name: "Ricky Martin", phone: "0244123456", network: "mtn", saved: true },
+  { kind: "wallet", name: "Kwame Boateng", phone: "0245556631", network: "mtn", saved: true },
+  { kind: "wallet", name: "Kwame Asante", phone: "0541239012", network: "mtn", saved: true },
   { kind: "wallet", name: "Ama Serwaa", phone: "0201234567", network: "telecel", saved: true },
   { kind: "wallet", name: "Kojo Mensah", phone: "0271555010", network: "at", saved: true },
   { kind: "bank", name: "Kofi Boateng", account: "1021450006789", bank: "GCB Bank", saved: true },

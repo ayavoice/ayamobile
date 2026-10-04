@@ -51,6 +51,7 @@ import {
 const LANG_HTML: Record<string, string> = {
   en: "en",
   tw: "tw",
+  ee: "ee",
 };
 
 function focusMainContent() {
@@ -154,6 +155,21 @@ function AppNavigator() {
 
   const { isDark } = useTheme();
   const statusStyle = isDark ? "light" : "dark";
+
+  // Expo Go re-applies its own status bar config when the app returns to the
+  // foreground, which can leave white icons on the light background.
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const apply = () => {
+      StatusBar.setHidden(false);
+      StatusBar.setStyle(statusStyle);
+    };
+    apply();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") apply();
+    });
+    return () => sub.remove();
+  }, [statusStyle]);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
@@ -261,15 +277,9 @@ function AppNavigator() {
     case "listening":
       content = (
         <ListeningScreen
-          onNext={() =>
-            go(
-              activeFlow === "transfer"
-                ? "send-money"
-                : activeFlow === "support"
-                  ? "support"
-                  : "biometric",
-            )
-          }
+          onConfirmed={() => go("biometric")}
+          onEdit={() => go("send-money")}
+          onHandoff={() => go("support")}
           onBack={back}
           onScan={openScanPay}
         />
@@ -365,7 +375,7 @@ function AppNavigator() {
           {showTabBar ? <TabBar current={screen} onNav={go} onStartFlow={startFlow} /> : null}
         </View>
       </MobilePreviewFrame>
-      {Platform.OS !== "web" ? <StatusBar style={statusStyle} /> : null}
+      {Platform.OS !== "web" ? <StatusBar style={statusStyle} hidden={false} /> : null}
     </View>
   );
 }
@@ -392,7 +402,7 @@ function BootScreen() {
           />
         </View>
       </MobilePreviewFrame>
-      {Platform.OS !== "web" ? <StatusBar style={isDark ? "light" : "dark"} /> : null}
+      {Platform.OS !== "web" ? <StatusBar style={isDark ? "light" : "dark"} hidden={false} /> : null}
     </>
   );
 }

@@ -1,23 +1,35 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 import {
   createAudioPlayer,
   requestRecordingPermissionsAsync,
   RecordingPresets,
   setAudioModeAsync,
   useAudioRecorder,
+  useAudioRecorderState,
 } from "expo-audio";
+import { useState } from "react";
 import { File, Paths } from "expo-file-system";
 
 /**
- * HCI Lab Speech Gateway (UG) — ASR and TTS for the Talk screen.
- * Docs: https://lab-subscription-platform.vercel.app/dashboard/documentation
+ * ASR and TTS for the Talk screen, through the Aya server (`/v1/speech/*`),
+ * which holds the HCI Lab Speech Gateway token.
  *
  * Quotas are small (ASR 10/day, TTS 15/day, TTS max 250 chars), so each Talk
  * turn makes exactly one ASR call and one TTS call.
  */
 
-const BASE_URL = "https://lab-subscription-platform.vercel.app/api/v1";
-const TOKEN = process.env.EXPO_PUBLIC_SPEECH_API_TOKEN ?? "";
+const API_PORT = 4000;
+
+/** Explicit URL wins; otherwise reuse the Metro host so a phone on the LAN reaches the dev server. */
+function apiUrl(): string {
+  const explicit = process.env.EXPO_PUBLIC_API_URL;
+  if (explicit) return explicit.replace(/\/+$/, "");
+  const host = Constants.expoConfig?.hostUri?.split(":")[0];
+  return `http://${host ?? "localhost"}:${API_PORT}`;
+}
+
+const BASE_URL = `${apiUrl()}/v1/speech`;
 const TTS_MAX_CHARS = 250;
 
 export class SpeechGatewayError extends Error {
@@ -30,9 +42,12 @@ export class SpeechGatewayError extends Error {
   }
 }
 
-function authHeaders(): Record<string, string> {
-  if (!TOKEN) throw new SpeechGatewayError("Speech API token is not configured.", "missing_token");
-  return { Authorization: `Bearer ${TOKEN}` };
+async function send(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new SpeechGatewayError("I can't reach the Aya server right now.", "server_unreachable");
+  }
 }
 
 async function toError(res: Response): Promise<SpeechGatewayError> {
@@ -61,7 +76,7 @@ export async function transcribe(audioUri: string): Promise<string> {
     form.append("file", new File(audioUri) as unknown as Blob);
   }
 
-  const res = await fetch(`${BASE_URL}/asr`, { method: "POST", headers: authHeaders(), body: form });
+  const res = await send(`${BASE_URL}/asr`, { method: "POST", body: form });
   if (!res.ok) throw await toError(res);
 
   const json: { transcription?: string } = await res.json();
@@ -72,10 +87,10 @@ export type SpeechClip = { uri: string; durationSec: number };
 
 /** POST /tts — returns a playable URI for the synthesized WAV. */
 export async function synthesize(text: string): Promise<SpeechClip> {
-  const res = await fetch(`${BASE_URL}/tts`, {
+  const res = await send(`${BASE_URL}/tts`, {
     method: "POST",
-    headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ text: text.slice(0, TTS_MAX_CHARS), model_type: "ss", speaker: "PT" }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: text.slice(0, TTS_MAX_CHARS) }),
   });
   if (!res.ok || !res.headers.get("content-type")?.includes("audio")) throw await toError(res);
 
@@ -111,11 +126,22 @@ export function playClip(uri: string, onEnd?: () => void): () => void {
   return release;
 }
 
-/** Microphone capture for one Talk turn. `stop` resolves with the clip URI. */
+/** Input level (dBFS) above which the user counts as speaking. */
+const VOICE_LEVEL_DB = -35;
+
+/**
+ * Microphone capture for one Talk turn. `stop` resolves with the clip URI.
+ * `heard` turns true once the user's voice is picked up in the current turn.
+ */
 export function useVoiceRecorder() {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const state = useAudioRecorderState(recorder, 100);
+  const [heard, setHeard] = useState(false);
+
+  if (!heard && state.isRecording && (state.metering ?? -160) > VOICE_LEVEL_DB) setHeard(true);
 
   const start = async () => {
+    setHeard(false);
     const permission = await requestRecordingPermissionsAsync();
     if (!permission.granted) {
       throw new SpeechGatewayError("Microphone permission is needed to talk to Aya.", "mic_denied");
@@ -135,5 +161,5 @@ export function useVoiceRecorder() {
     return recorder.uri;
   };
 
-  return { start, stop };
+  return { start, stop, heard };
 }

@@ -8,7 +8,7 @@ import {
   ViewStyle,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { spacing, useColors } from "../../theme";
 import { lightColors } from "../../theme/colors";
 import { useAppPrefsOptional } from "../../context/AppPrefs";
@@ -49,12 +49,16 @@ export default function Screen({
 
   const padStyle = padded ? { paddingHorizontal: spacing.screenX } : undefined;
 
-  const edges =
+  const insets = useSafeAreaInsets();
+  const safePad =
     Platform.OS === "web"
-      ? []
-      : safeBottom
-        ? (["top", "left", "right", "bottom"] as const)
-        : (["top", "left", "right"] as const);
+      ? undefined
+      : {
+          paddingTop: insets.top,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+          paddingBottom: safeBottom ? insets.bottom : 0,
+        };
 
   const body = scroll ? (
     <ScrollView
@@ -70,9 +74,8 @@ export default function Screen({
   );
 
   return (
-    <SafeAreaView
-      style={[styles.root, { backgroundColor: resolvedBg }, style]}
-      edges={[...edges]}
+    <View
+      style={[styles.root, { backgroundColor: resolvedBg }, safePad, style]}
       role="main"
       nativeID="main-content"
       // Web skip-link target; RNW maps `id` onto the DOM node.
@@ -80,11 +83,11 @@ export default function Screen({
     >
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "web" ? undefined : "padding"}
       >
         {body}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

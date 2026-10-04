@@ -32,6 +32,9 @@ export type AccessibilityPrefs = {
 
 export type Account = { name: string; phone: string };
 
+export type TopUpKind = "airtime" | "data";
+export type RiskLevel = "low" | "medium" | "high";
+
 /** Set once the MoMo PIN has signed this phone in. The PIN itself is never stored. */
 export type AppLock = { biometric: boolean };
 
@@ -77,6 +80,15 @@ type AppPrefsValue = {
   setTransferAmount: (amount: string | null) => void;
   transferRecipient: Recipient | null;
   setTransferRecipient: (recipient: Recipient | null) => void;
+  /** Airtime or data, for the airtime flow. */
+  topUpKind: TopUpKind;
+  setTopUpKind: (kind: TopUpKind) => void;
+  /** Only the level from the voice conversation is kept (architecture.md §6.5). */
+  riskLevel: RiskLevel;
+  setRiskLevel: (level: RiskLevel) => void;
+  /** What the user said when a conversation was handed to support. */
+  spokenRequest: string | null;
+  setSpokenRequest: (text: string | null) => void;
   lastShopPayment: ShopPayment | null;
   publishShopPayment: (payment: Omit<ShopPayment, "id">) => void;
   clearScanPayment: () => void;
@@ -187,6 +199,47 @@ function withTransferOverrides(
   };
 }
 
+function withTopUpOverrides(
+  base: FlowContent,
+  amountRaw: string | null,
+  recipient: Recipient | null,
+  kind: TopUpKind,
+): FlowContent {
+  if (!amountRaw && !recipient && kind === "airtime") return base;
+
+  const amountLabel = amountRaw ? formatCurrency(amountRaw) : base.confirmHero;
+  const type = kind === "data" ? "Data" : "Airtime";
+  const who = recipient ? recipient.name : "your MTN number";
+  const meta = recipient ? recipientLine(recipient) : "Self top-up · MTN";
+  const network = recipient ? recipientNetworkLabel(recipient) : "MTN";
+
+  return {
+    ...base,
+    intentLabel: kind === "data" ? "BUY DATA" : "BUY AIRTIME",
+    details: [
+      { label: "Amount", value: amountLabel },
+      { label: "For", value: recipient ? recipient.name : "Your number" },
+      { label: "Network", value: network },
+      { label: "Type", value: type },
+    ],
+    confirmHero: amountLabel,
+    confirmTarget: `${type.toLowerCase()} for ${who}`,
+    confirmMeta: meta,
+    readAloud: `You are about to buy ${amountLabel} ${type.toLowerCase()} for ${who}. Say continue or cancel.`,
+    processingLabel: `Buying ${amountLabel} ${type.toLowerCase()} for ${who}`,
+    successTitle: `${type} purchased!`,
+    successAmount: amountLabel,
+    successSubtitle: `${type} added to ${who}`,
+    successDetails: base.successDetails.map((d) =>
+      d.label === "For"
+        ? { ...d, value: recipient ? recipient.name : "Your MTN number" }
+        : d.label === "Amount"
+          ? { ...d, value: amountLabel }
+          : d,
+    ),
+  };
+}
+
 export function AppPrefsProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<AppLanguage>("tw");
   const [accessibility, setAccessibilityState] = useState<AccessibilityPrefs>(DEFAULT_A11Y);
@@ -194,6 +247,9 @@ export function AppPrefsProvider({ children }: { children: ReactNode }) {
   const [scanPayee, setScanPayeeState] = useState<ScanPayee | null>(null);
   const [transferAmount, setTransferAmount] = useState<string | null>(null);
   const [transferRecipient, setTransferRecipient] = useState<Recipient | null>(null);
+  const [topUpKind, setTopUpKind] = useState<TopUpKind>("airtime");
+  const [riskLevel, setRiskLevel] = useState<RiskLevel>("low");
+  const [spokenRequest, setSpokenRequest] = useState<string | null>(null);
   const [lastShopPayment, setLastShopPayment] = useState<ShopPayment | null>(null);
   const [shopPaymentSeq, setShopPaymentSeq] = useState(0);
   const [supportTicket, setSupportTicket] = useState<SupportTicket | null>(null);
@@ -311,6 +367,9 @@ export function AppPrefsProvider({ children }: { children: ReactNode }) {
   const setActiveFlow = useCallback((flow: FlowId) => {
     setActiveFlowState(flow);
     setTransferRecipient(null);
+    setTopUpKind("airtime");
+    setRiskLevel("low");
+    setSpokenRequest(null);
     if (flow !== "transfer") {
       setScanPayeeState(null);
       setTransferAmount(null);
@@ -327,9 +386,13 @@ export function AppPrefsProvider({ children }: { children: ReactNode }) {
 
   const flow = useMemo(() => {
     const base = getFlowContent(activeFlow, language);
+    if (activeFlow === "airtime") return withTopUpOverrides(base, transferAmount, transferRecipient, topUpKind);
+    if (activeFlow === "support" && spokenRequest) {
+      return { ...base, utterance: { ...base.utterance, transcript: spokenRequest, gloss: spokenRequest } };
+    }
     if (activeFlow !== "transfer") return base;
     return withTransferOverrides(base, scanPayee, transferAmount, transferRecipient);
-  }, [activeFlow, language, scanPayee, transferAmount, transferRecipient]);
+  }, [activeFlow, language, scanPayee, transferAmount, transferRecipient, topUpKind, spokenRequest]);
 
   const textScale = accessibility.largeText
     ? accessibility.textSize === 1
@@ -371,6 +434,12 @@ export function AppPrefsProvider({ children }: { children: ReactNode }) {
       setTransferAmount,
       transferRecipient,
       setTransferRecipient,
+      topUpKind,
+      setTopUpKind,
+      riskLevel,
+      setRiskLevel,
+      spokenRequest,
+      setSpokenRequest,
       lastShopPayment,
       publishShopPayment,
       clearScanPayment,
@@ -380,6 +449,9 @@ export function AppPrefsProvider({ children }: { children: ReactNode }) {
       requestCallback,
     }),
     [
+      topUpKind,
+      riskLevel,
+      spokenRequest,
       supportTicket,
       openSupportTicket,
       addTicketEvent,
